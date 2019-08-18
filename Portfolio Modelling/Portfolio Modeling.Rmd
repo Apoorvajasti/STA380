@@ -1,0 +1,181 @@
+---
+title: "Portfolio Modeling"
+output: html_document
+---
+
+```{r include=FALSE, echo=FALSE}
+library(mosaic)
+library(quantmod)
+library(foreach)
+```
+
+<br/>
+<p><font size='3'>We have designed 3 portfolios keeping in mind the traits of three different type of investors i.e. an agressive investor, a moderate investor, and a conservative investor.<br/><br/>
+1. **Agressive Investor**: An agressive investor is a young investor in the age bracket of 18-35, looking for a long term investment of 30 plus years. Such an investor has high tolerance for risk and hence wants a high return.<br/><br/>
+2. **Moderate Investor**: A moderate investor is in the age bracket of 35-50. He/she is looking for a mid-term investment horizon and have some risk taking tolerance (not much though). They are looking for moderare returns.<br/><br/>
+3. **Safe Investor**: A safe investor is often over the age of 50, nearing retirement. He/she is typically not a risk taker and want their investments to be safe and less volatile. He/she is looking for small but steady returns.</font></p><br/><br/>
+
+<h3><font color='#00008b'>Portfolio for Aggressive Investor</font></h3>
+<p><font size='3'>For an agressive investor, we will invest 85% of the wealth in stocks and remaining 15% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (20%): VTI<br/>
+- Mid-Cap Stocks (20%): IVOG<br/>
+- Small-Cap Stocks (20%): VB<br/>
+- International Stocks (15%): SCZ<br/>
+- Emerging Markets Stocks (10%): VWO<br/>
+- Intermediate Bonds (15%): BND</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+agg_portfolio = c("VTI","IVOG","VB","SCZ","VWO","BND")
+
+getSymbols(agg_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+VWOa = adjustOHLC(VWO)
+BNDa = adjustOHLC(BND)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(VWOa),ClCl(BNDa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_agg = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2,0.2,0.2,0.15,0.1,0.15)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_agg = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_agg[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_agg
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_agg[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_agg[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+
+<p><font size='3'>The Value at Risk of the aggressive portfolio at 5% after running Monte Carlo Simulations is negative USD 4977.34. This means that there is a probablity of 0.05 that the portfolio will fall by USD 4977.34. This can also be interpretted as a loss of USD 4977.34 will be incurred on 1 out of 20 days.</font></p><br/><br />
+
+<h3><font color='#00008b'>Portfolio for Moderate Investor</font></h3>
+<p><font size='3'>For an agressive investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (20%): VTI<br/>
+- Mid-Cap Stocks (20%): IVOG<br/>
+- Small-Cap Stocks (10%): VB<br/>
+- International Stocks (15%): SCZ<br/>
+- Emerging Markets Stocks (5%): VWO<br/>
+- Intermediate Bonds (30%): BND</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+mod_portfolio = c("VTI","IVOG","VB","SCZ","VWO","BND")
+
+getSymbols(mod_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+VWOa = adjustOHLC(VWO)
+BNDa = adjustOHLC(BND)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(VWOa),ClCl(BNDa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_mod = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2,0.2,0.1,0.15,0.05,0.3)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_mod = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_mod[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_mod
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_mod[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_mod[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+
+<p><font size='3'>The Value at Risk of the moderate portfolio at 5% after running Monte Carlo Simulations is negative USD 3687.38. This means that there is a probablity of 0.05 that the portfolio will fall by USD 3687.38. This can also be interpretted as a loss of USD 3687.38 will be incurred on 1 out of 20 days. As expected, it is lower than that of the aggressive portfolio.</font></p><br/><br />
+
+<h3><font color='#00008b'>Portfolio for Moderate Investor</font></h3>
+<p><font size='3'>For an agressive investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (25%): VTI<br/>
+- Mid-Cap Stocks (10%): IVOG<br/>
+- Small-Cap Stocks (10%): VB<br/>
+- International Stocks (5%): SCZ<br/>
+- Intermediate Bonds (40%): BND<br/ >
+- Short-Term Bonds (10%): NEAR</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+safe_portfolio = c("VTI","IVOG","VB","SCZ","BND","BSV")
+
+getSymbols(safe_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+BNDa = adjustOHLC(BND)
+BSVa = adjustOHLC(BSV)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(BNDa),ClCl(BSVa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_safe = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.25,0.1,0.1,0.05,0.4,0.1)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_safe = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_safe[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_safe
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_safe[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_safe[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+
+<p><font size='3'>The Value at Risk of the safe portfolio at 5% after running Monte Carlo Simulations is negative USD 2634.098. This means that there is a probablity of 0.05 that the portfolio will fall by USD 2634.098. This can also be interpretted as a loss of USD 2634.098 will be incurred on 1 out of 20 days. As expected, it is the lowest when compared with the aggressive and moderate portfolios.</font></p><br/><br />

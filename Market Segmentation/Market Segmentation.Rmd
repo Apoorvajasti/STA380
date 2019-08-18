@@ -1,0 +1,148 @@
+---
+title: "solution for q4"
+output: html_document
+---
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to identifies any interesting market segments that appear to stand out in NutrientH20's social-media audience.</font></p>
+</br>
+
+```{r include=FALSE, echo=FALSE}
+library(dplyr)
+library(ggplot2)
+library(LICORS)
+library(janitor)
+library(knitr)
+library(kableExtra)
+
+setwd("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/")
+data = read.csv("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/question 4/social_marketing.csv",row.names=1)
+```
+
+<h3><font color='#00008b'>Data Exploration</font></h3>
+<p><font size='3'>Some interesting finds from summary of the data:</p>
+<p>1. There are 7882 followers in the dataset whose tweets have been categorized into 36 distinct categories.<br />
+2. The max number of spam tweets by any follower was 2. This meant that the spam filter was doing its job fairly well.<br /></font></p>
+
+```{r echo=FALSE}
+total_col = apply(data,1,sum)
+rel_freq = function(x) {
+  x / total_col
+}
+
+data.1 = data %>% mutate(rel_uncat=rel_freq(uncategorized),rel_adult=rel_freq(adult)) 
+
+data.clean = data.1 %>% filter(rel_uncat<.33&rel_adult<.33)
+data.clean = data.clean[,!(names(data.clean) %in% c("rel_uncat","rel_adult"))]
+data.clean = scale(data.clean,center=TRUE,scale=TRUE)
+
+mu = attr(data.clean,"scaled:center")
+sigma = attr(data.clean,"scaled:scale")
+```
+
+<p><font size='3'>3. On the basis of relative frequency of tweet categories for every followers, we omitted the followers who had more than one-third of their tweets under uncategorized or adult. 26 followers were removed.
+4. We will drop uncategorized column as it doesn't add value to cluster definition.<br /></font></p><br/>
+
+<h3><font color='#00008b'>Clustering</font></h3>
+<p><font size='3'>First will we perform K-means to find clusters of followers. Number of clusters will be chosen on the basis of elbow plot. The grid for k will be from 2 through 25.</font></p>
+
+```{r echo=FALSE,warning=FALSE,error=FALSE}
+set.seed(1892)
+grid=seq(2,25,1)
+sse = c()
+ch = c()
+
+for(i in grid){
+  cluster = kmeans(data.clean,i,nstart=20)
+  sse = c(sse,cluster$tot.withinss)
+  W = cluster$tot.withinss
+  B = cluster$betweenss
+  N = nrow(data.clean)
+  ch1 = (B/W)*((N-i)/(i-1))
+  ch = c(ch,ch1)
+}
+
+output = as.data.frame(cbind(grid,sse,ch))
+
+ggplot(output) +
+  geom_point(aes(x=grid,y=sse)) +
+  labs(x='K',y='SSE')
+```
+
+<p><font size='3'>In the plot above, we can't see a prominent elbow. We will now plot CH index plot to find value of K.</font></p>
+
+```{r echo=FALSE}
+ggplot(output) +
+  geom_point(aes(x=grid,y=ch)) +
+  labs(x='K',y='CH')
+```
+
+<p><font size='3'>On the basis K vs CH index plot, we will choose k as 4.</font></p>
+
+```{r echo=FALSE}
+cluster = kmeans(data.clean,4,nstart=20)
+cluster$size/nrow(data.clean)
+```
+
+<p><font size='3'>The clusters have ~62.3%, ~27.3%, and ~10.3% of the followers.</font></p><br/>
+
+<p><font size='3'>Next we will use K-means ++  initialization.</font><p><br/>
+
+```{r echo=FALSE}
+cluster_pp = kmeanspp(data.clean,4,nstart=20)
+cluster_pp$size/nrow(data.clean)
+```
+
+<p><font size='3'>K-means ++ is giving the same clusters sizes. So, we'll stick with K-means result.</font><p><br/>
+
+<p><font size='3'>We now try Hierachical clustering to see if the results change.</font><p><br/>
+
+
+```{r echo=FALSE}
+distance_matrix = dist(data.clean, method='euclidean')
+hier_cluster = hclust(distance_matrix, method='average')
+hier_cluster_10 = cutree(hier_cluster, k=10)
+summary(factor(hier_cluster_10))
+```
+
+<p><font size='3'>Heirachical clustering is not giving good result in this case as one of the cluster is huge with almost 99 percent of the followers.</font><p><br />
+
+<h3><font color='#00008b'>Cluster Analysis</font></h3>
+<p><font size='3'>K-means gave us 4 clusters. We will now analyze these clusters.</font><p><br />
+
+```{r}
+data.clean.1 = data.1 %>% filter(rel_uncat<.33&rel_adult<.33)
+data.clean.1 = data.clean.1[,!(names(data.clean.1) %in% c("rel_uncat","rel_adult"))]
+
+all_data = as.data.frame(cbind(data.clean.1,cluster$cluster))
+names(all_data)[names(all_data) == 'cluster$cluster'] <- 'cluster'
+all_data$cluster = as.factor(all_data$cluster)
+cluster1 = all_data[all_data$cluster=='1',]
+cluster2 = all_data[all_data$cluster=='2',]
+cluster3 = all_data[all_data$cluster=='3',]
+cluster4 = all_data[all_data$cluster=='4',]
+
+cluster1_rel = cluster1[,-37]/rowSums(cluster1[,-37])
+```
+
+
+```{r echo=FALSE, include=FALSE}
+
+
+Z = data.clean.1/rowSums(data.clean.1)
+
+pc = prcomp(Z,scale=TRUE,rank=5,center=TRUE)
+summary(pc2)
+loadings = pc2$rotation
+scores = pc2$x
+
+Z = as.data.frame(cbind(Z,cluster$cluster))
+Z$`cluster$cluster` = as.factor(Z$`cluster$cluster`)
+names(Z)[names(Z) == 'cluster$cluster'] <- 'cluster'
+```
+
+```{r echo=FALSE}
+qplot(scores[,1], scores[,2], color=Z$cluster, xlab='Component 1', ylab='Component 2')+scale_color_colorblind()
+```
+
+
