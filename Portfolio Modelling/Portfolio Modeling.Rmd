@@ -71,7 +71,7 @@ quantile((simulation_agg[,n_days]- initial_wealth), probs = c(0.05))
 <p><font size='3'>The Value at Risk of the aggressive portfolio at 5% after running Monte Carlo Simulations is negative USD 4977.34. This means that there is a probablity of 0.05 that the portfolio will fall by USD 4977.34. This can also be interpretted as a loss of USD 4977.34 will be incurred on 1 out of 20 days.</font></p><br/><br />
 
 <h3><font color='#00008b'>Portfolio for Moderate Investor</font></h3>
-<p><font size='3'>For an agressive investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+<p><font size='3'>For a moderate investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
 - Large-Cap Stocks (20%): VTI<br/>
 - Mid-Cap Stocks (20%): IVOG<br/>
 - Small-Cap Stocks (10%): VB<br/>
@@ -125,8 +125,8 @@ quantile((simulation_mod[,n_days]- initial_wealth), probs = c(0.05))
 
 <p><font size='3'>The Value at Risk of the moderate portfolio at 5% after running Monte Carlo Simulations is negative USD 3687.38. This means that there is a probablity of 0.05 that the portfolio will fall by USD 3687.38. This can also be interpretted as a loss of USD 3687.38 will be incurred on 1 out of 20 days. As expected, it is lower than that of the aggressive portfolio.</font></p><br/><br />
 
-<h3><font color='#00008b'>Portfolio for Moderate Investor</font></h3>
-<p><font size='3'>For an agressive investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+<h3><font color='#00008b'>Portfolio for Safe Investor</font></h3>
+<p><font size='3'>For an safe investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
 - Large-Cap Stocks (25%): VTI<br/>
 - Mid-Cap Stocks (10%): IVOG<br/>
 - Small-Cap Stocks (10%): VB<br/>

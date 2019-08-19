@@ -10,13 +10,16 @@ output: html_document
 ```{r include=FALSE, echo=FALSE}
 library(dplyr)
 library(ggplot2)
+library(ggthemes)
 library(LICORS)
 library(janitor)
 library(knitr)
 library(kableExtra)
+library(ggalt)
+library(ggbiplot)
 
 setwd("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/")
-data = read.csv("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/question 4/social_marketing.csv",row.names=1)
+data = read.csv("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/Market Segmentation/social_marketing.csv",row.names=1)
 ```
 
 <h3><font color='#00008b'>Data Exploration</font></h3>
@@ -33,31 +36,31 @@ rel_freq = function(x) {
 data.1 = data %>% mutate(rel_uncat=rel_freq(uncategorized),rel_adult=rel_freq(adult)) 
 
 data.clean = data.1 %>% filter(rel_uncat<.33&rel_adult<.33)
-data.clean = data.clean[,!(names(data.clean) %in% c("rel_uncat","rel_adult"))]
-data.clean = scale(data.clean,center=TRUE,scale=TRUE)
+data.clean = data.clean[,!(names(data.clean) %in% c("rel_uncat","rel_adult","uncategorized","adult","chatter","spam"))]
+data.scaled = scale(data.clean,center=TRUE,scale=TRUE)
 
-mu = attr(data.clean,"scaled:center")
-sigma = attr(data.clean,"scaled:scale")
+mu = attr(data.scaled,"scaled:center")
+sigma = attr(data.scaled,"scaled:scale")
 ```
 
 <p><font size='3'>3. On the basis of relative frequency of tweet categories for every followers, we omitted the followers who had more than one-third of their tweets under uncategorized or adult. 26 followers were removed.
-4. We will drop uncategorized column as it doesn't add value to cluster definition.<br /></font></p><br/>
+4. We will drop uncategorized, adult, chatter and spam columna as they don't add value to cluster definition.<br /></font></p><br/>
 
 <h3><font color='#00008b'>Clustering</font></h3>
 <p><font size='3'>First will we perform K-means to find clusters of followers. Number of clusters will be chosen on the basis of elbow plot. The grid for k will be from 2 through 25.</font></p>
 
-```{r echo=FALSE,warning=FALSE,error=FALSE}
+```{r echo=FALSE,warning=FALSE,error=FALSE,fig.height=8,fig.width=10,fig.align="center"}
 set.seed(1892)
 grid=seq(2,25,1)
 sse = c()
 ch = c()
 
 for(i in grid){
-  cluster = kmeans(data.clean,i,nstart=20)
+  cluster = kmeans(data.scaled,i,nstart=20)
   sse = c(sse,cluster$tot.withinss)
   W = cluster$tot.withinss
   B = cluster$betweenss
-  N = nrow(data.clean)
+  N = nrow(data.scaled)
   ch1 = (B/W)*((N-i)/(i-1))
   ch = c(ch,ch1)
 }
@@ -71,26 +74,26 @@ ggplot(output) +
 
 <p><font size='3'>In the plot above, we can't see a prominent elbow. We will now plot CH index plot to find value of K.</font></p>
 
-```{r echo=FALSE}
+```{r echo=FALSE,fig.height=8,fig.width=10,fig.align="center"}
 ggplot(output) +
   geom_point(aes(x=grid,y=ch)) +
   labs(x='K',y='CH')
 ```
 
-<p><font size='3'>On the basis K vs CH index plot, we will choose k as 4.</font></p>
+<p><font size='3'>On the basis K vs CH index plot, we will choose k as 6.</font></p>
 
 ```{r echo=FALSE}
-cluster = kmeans(data.clean,4,nstart=20)
-cluster$size/nrow(data.clean)
+cluster = kmeans(data.scaled,6,nstart=20)
+cluster$size/nrow(data.scaled)
 ```
 
-<p><font size='3'>The clusters have ~62.3%, ~27.3%, and ~10.3% of the followers.</font></p><br/>
+<p><font size='3'>The clusters have ~9%, ~8%, ~10%, ~12% and ~64% of the followers.</font></p><br/>
 
 <p><font size='3'>Next we will use K-means ++  initialization.</font><p><br/>
 
 ```{r echo=FALSE}
-cluster_pp = kmeanspp(data.clean,4,nstart=20)
-cluster_pp$size/nrow(data.clean)
+cluster_pp = kmeanspp(data.scaled,6,nstart=20)
+cluster_pp$size/nrow(data.scaled)
 ```
 
 <p><font size='3'>K-means ++ is giving the same clusters sizes. So, we'll stick with K-means result.</font><p><br/>
@@ -99,7 +102,7 @@ cluster_pp$size/nrow(data.clean)
 
 
 ```{r echo=FALSE}
-distance_matrix = dist(data.clean, method='euclidean')
+distance_matrix = dist(data.scaled, method='euclidean')
 hier_cluster = hclust(distance_matrix, method='average')
 hier_cluster_10 = cutree(hier_cluster, k=10)
 summary(factor(hier_cluster_10))
@@ -110,28 +113,23 @@ summary(factor(hier_cluster_10))
 <h3><font color='#00008b'>Cluster Analysis</font></h3>
 <p><font size='3'>K-means gave us 4 clusters. We will now analyze these clusters.</font><p><br />
 
-```{r}
-data.clean.1 = data.1 %>% filter(rel_uncat<.33&rel_adult<.33)
-data.clean.1 = data.clean.1[,!(names(data.clean.1) %in% c("rel_uncat","rel_adult"))]
+```{r include=FALSE}
+#all_data = as.data.frame(cbind(data.clean.1,cluster$cluster))
+#names(all_data)[names(all_data) == 'cluster$cluster'] <- 'cluster'
+#all_data$cluster = as.factor(all_data$cluster)
+#cluster1 = all_data[all_data$cluster=='1',]
+#cluster2 = all_data[all_data$cluster=='2',]
+#cluster3 = all_data[all_data$cluster=='3',]
+#cluster4 = all_data[all_data$cluster=='4',]
 
-all_data = as.data.frame(cbind(data.clean.1,cluster$cluster))
-names(all_data)[names(all_data) == 'cluster$cluster'] <- 'cluster'
-all_data$cluster = as.factor(all_data$cluster)
-cluster1 = all_data[all_data$cluster=='1',]
-cluster2 = all_data[all_data$cluster=='2',]
-cluster3 = all_data[all_data$cluster=='3',]
-cluster4 = all_data[all_data$cluster=='4',]
-
-cluster1_rel = cluster1[,-37]/rowSums(cluster1[,-37])
+#cluster1_rel = cluster1[,-37]/rowSums(cluster1[,-37])
 ```
 
 
 ```{r echo=FALSE, include=FALSE}
+Z = data.clean/rowSums(data.clean)
 
-
-Z = data.clean.1/rowSums(data.clean.1)
-
-pc = prcomp(Z,scale=TRUE,rank=5,center=TRUE)
+pc2 = prcomp(Z,scale=TRUE,rank=5,center=TRUE)
 summary(pc2)
 loadings = pc2$rotation
 scores = pc2$x
@@ -141,8 +139,35 @@ Z$`cluster$cluster` = as.factor(Z$`cluster$cluster`)
 names(Z)[names(Z) == 'cluster$cluster'] <- 'cluster'
 ```
 
-```{r echo=FALSE}
+<p><font size='3'>We will use PCA to analyze the cluster. In the plot we see six clusters with position of the followers on the basis on principle component 1 and principle component 2.</font><p><br />
+
+```{r echo=FALSE,fig.height=8,fig.width=10,fig.align="center"}
 qplot(scores[,1], scores[,2], color=Z$cluster, xlab='Component 1', ylab='Component 2')+scale_color_colorblind()
 ```
 
+<br /><p><font size='3'>The order of loadings for principle component 1 is:</font><p>
 
+```{r echo=FALSE} 
+colnames(Z)[order(loadings[,1], decreasing=TRUE)]
+```
+
+<br /><p><font size='3'>The order of loadings for principle component 2 is:</font><p>
+
+```{r echo=FALSE}
+colnames(Z)[order(loadings[,2], decreasing=TRUE)]
+```
+
+<br/><p><font size='3'>We will also use biplot to define the clusters.</font><p>
+
+```{r echo=FALSE,fig.height=12,fig.width=12,fig.align="center"}
+biplot(pc2)
+```
+
+<p><font size='3'>On the basis of the biplot, principle component 1 and principle component 2 we can define our cluster of followers as:<br/><br/>
+1. **Parents/Family oriented**: This cluster has followers who belong baby boomer or gen X category. They tweet a mostly about parenting, food, family, and religion.<br /><br />
+2. **Media Junkies**: This cluster has followers who talk about news, politics, business, and currenrt events. They like to talk about movies and television.<br /><br />
+3. **College Students**: This cluster has young lads who are in college and like talking about sports and online gaming. They also share photos and love to travel.<br /><br />
+4. **Artists**: This cluster has followers who are inclined towards music, crafts, and art.<br/><br />
+5. **Fitness Enthusiasts**: This cluster has followers with interests in health and nutrition, personal fitness, and talk about outdoor activities.<br/><br />
+6. **Beauty Bloggers**: This cluster has followers who are beauty conscious and talk about fashion and dating.<br/>
+</font><p>
