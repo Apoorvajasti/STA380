@@ -1,0 +1,160 @@
+---
+title: "Green Buildings"
+output: html_document
+---
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to supoort or counter conclusions of real estate developer's on staff stats guru with evidence.</font></p>
+</br>
+
+<h3><font color='#00008b'>Data Exploration and Analysis</font></h3>
+```{r echo=FALSE,warning=False}
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(mosaic)
+library(ggplot2)
+library(magrittr)
+
+rm(list=ls())
+buildings=read.csv('greenbuildings.csv')
+
+
+names(buildings)
+buildings$class = ifelse(buildings$class_a == 1, "A", ifelse(buildings$class_b == 1,"B","C") )
+green=buildings[buildings$green_rating==1,]
+non_green=buildings[buildings$green_rating==0,]
+
+print('Number of green buildings')
+nrow(green)
+print('Number of non-green buildings')
+nrow(non_green)
+
+print('Summary of rent for green buildings')
+summary(green$Rent) ## Mean: 30.02, Median 27.60
+
+print('Summary of rent for non-green buildings')
+summary(non_green$Rent) ## Mean: 28.27, Median 25.00
+#summary(green$age) ## Mean: 23.85
+#summary(non_green$age) ## Mean: 49.47
+
+print('Summary of leasing rate for green buildings')
+summary(green$leasing_rate) ## Mean 89.28 ##93.92
+print('Summary of rent for non-green buildings')
+summary(non_green$leasing_rate) ## Mean 81.97 ##89.17
+#summary(green$net) ## Mean 89.28
+#summary(non_green$net) ## Mean 81.97
+
+
+g_r=green[green$amenities==1,]
+g_nr=green[green$amenities==0,]
+ng_r=non_green[non_green$amenities==1,]
+ng_nr=non_green[non_green$amenities==0,]
+
+print('Green buildings with amenities')
+nrow(g_r)/(nrow(g_r)+nrow(g_nr))*100
+
+print('non-green buildings with amenities')
+nrow(ng_r)/(nrow(ng_r)+nrow(ng_nr))*100
+
+print('Percentage of green buildings in each class')
+kable(table(green$class)/nrow(green)*100)
+print('Percentage of non-green buildings in each class')
+kable(table(non_green$class)/nrow(non_green)*100)
+```
+
+<p><font size='3'>For our research on the dataset, we first looked at how the variables differ between green and non-green buildings. Looking at the summary of the rent and leasing rate, we can see that the rent is $2.6(median rent) higher for green buildings and the leasing rate is ~15% higher for green buildings. Looking at the amenities, we can see that ~3/4th of the green buildings have amenities. From the classes, we can see that green buildings mostly belong to class A while non-green buildings are split across classes.</font></p>
+
+```{r echo=FALSE,warning=False}
+low_occ=buildings[buildings$leasing_rate<10.00,]
+print('Number of buildings with less than 10% occupancy rate')
+nrow(low_occ)## 215 buildings with less than 10% occupancy
+print('Number of green buildings  with less than 10% occupancy rate')
+nrow(low_occ[low_occ$green_rating==1,]) ## 1 green building with low occ
+high_occ=buildings[buildings$leasing_rate>10.00,]
+high_occ_green=high_occ[high_occ$green_rating==1,]
+
+print('Summary of rent for high occupancy green buildings')
+summary(high_occ_green$Rent) ## Mean: 30.03, Median 27.06
+high_occ_non_green=high_occ[high_occ$green_rating==0,]
+print('SUmmary of rent for high occupancy non-green buildings')
+summary(high_occ_non_green$Rent) ## Mean: 28.44, Median 25.03
+
+print('Summary for green buildings with 15 stories')
+summary(green[(green$stories==15),]$size) ## Mean: 291091, Median 262087
+
+g <- ggplot(buildings, aes(stories, size))
+g + geom_jitter(width = .5, size=1) +
+  labs(title="stories vs size of building", 
+       y="size", 
+       x="stories")
+```
+
+<p><font size='3'>We then looked into calculating the median rent and looking into hypothesis the 'excel guru' had. We looked at the rents of green and non-green building with and without the low occupany (<10%) rates, as we can see from the data there is no difference in the mean and median rent. Thus, the median difference of the rents between green and non-green buildings is similar($2.6). We then looked at the size of the 15-story building that the client wanted to build. Looking at the size vs stories, we can say that for the 15-story building, the median size is 266087. The size and stories are positively correlated. This would result into a higher extra revenue per year than predicted by the 'excel guru'.</font></p>
+
+```{r echo=FALSE,warning=False}
+lm.fit=lm(Rent~.,buildings)
+
+print('Summary of multiple linear regression for response rent')
+summary(lm.fit)
+theme_set(theme_classic())
+g <- ggplot(buildings, aes(cluster_rent,Electricity_Costs),fill=factor(cluster_rent))
+g + geom_jitter(width = .5, size=1) +
+  labs(title="Electricity.Costs vs rent of building", 
+       y="Electricity.Costs", 
+       x="cluster rent")
+```
+
+<p><font size='3'>After this we looked into how the other variables affected the rent of green vs non-green buildings. We first looked at the multiple linear regression. From the MLR summary, We can see that size, empl_gr, stories, age, class, net, amenities, hd_total07, precipitation, gas_costs, electricity_costs and cluster rent significantly affect the rent of the building. </font></p>
+
+<p><font size='3'>Variables such as empl_gr, hd_total07, precipitation, gas_costs, electricity_costs and cluster rent are all cluster dependent and hence same for green and non-green buildings. We can see the same from the cluster rent vs electicity cost graph. We need to look into these variables when looking at which cluster to build this building but not to decide if the building should be green or not.</font></p>
+
+<p><font size='3'>We have already looked into the size based on the given height of the building. We will now look into the effect of the age, class, net and amenities on the rent of green buildings vs non-green buildings.</font></p>
+
+
+```{r echo=FALSE,warning=False}
+### age vs mean_rent
+buildings=mutate(buildings,agecat=cut(age,c(-1,10,25,50,75,200)))
+summ1=buildings %>%
+  group_by(agecat,green_rating) %>%
+  summarize(mean_rent=mean(buildings$rent),n=n())
+ggplot(summ1)+
+  geom_bar(stat='identity',aes(x=agecat,y=mean_rent,fill=factor(green_rating)),position='dodge')
+### stories vs meant_rent
+buildings=mutate(buildings,lease_cut=cut(leasing_rate,c(-1,10,20,30,40,50,60,70,80,90,100)))
+summ1=buildings %>%
+  group_by(lease_cut,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(summ1)+
+  geom_bar(stat='identity',aes(x=lease_cut,y=mean_rent,fill=factor(green_rating)),position='dodge')
+### net vs meant_rent
+peh <- buildings %>%
+  group_by(net,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(net, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating)
+### amenities vs meant_rent
+peh <- buildings %>%
+  group_by(amenities,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(amenities, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating)
+### class vs meant_rent
+peh <- buildings %>%
+  group_by(class,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(class, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating)
+```
+
+<p><font size='3'>Looking at the affect of rent on 'net contract' basis, we can see that green-buildings not having net contract cost USD 6/square feet more compared to those that don't have it and $2/square feet more for non-green buildings having net contract. The rent of green-buildings irrespective of amenities is same but non-green buildings without amenities is cheaper by USD 2/square feet. From the age graph, we can see that green buildings have a higher rent after 10 years and their is a bigger difference at 75 years(but not stat. significance.). Hence, age might not be a huge differentiator for green vs non-green buildings for the first 50years. From the class graph, we can see that there is a difference of USD 1.5/square feet for class A and a difference of USD 5/square feet of Class C.</font></p>
+<br/>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>Taking the expected baseline construction costs to be USD 100 million, with a 5% expected premium for green certification, we should expect to spend an extra USD 5 million on the green building. Based on the extra revenue we would make, we would recuperate these costs in USD 5000000/690000 = 7.25 years. Even if our occupancy rate were only 90%, we would still recuperate the costs in a little over 7.5 years. Thus from year 8 onwards, we would be making atleast an extra USD 620,000 per year in profit assuming atleast 90% occupancy rate. Since the building will be earning rents for 30 years or more, it seems like a good financial move to build the green building with the given data.<br/><br/>
+Thus, from the different analyses we did we can say that the hypotheis 'excel guru' used to conclude the rent is not accurate. We need more details such as the location of the house (cluster) and details on the class, net and amenities of the building. We can use these details to estimate the accurate rent and as well as the additional cost we might incur to build the building.
+</font></p>
+

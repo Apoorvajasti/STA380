@@ -3,6 +3,13 @@ title: "Portfolio Modeling"
 output: html_document
 ---
 
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to:</font></p>
+<p><font size='3'>1. Construct three different possibilities for an ETF-based portfolio, each involving an allocation of $100,000 in capital to somewhere between 3 and 10 different ETFs. We can find a big database of ETFs here.<br/>
+2. Download the last five years of daily data on our chosen ETFs, using the functions in the quantmod package.<br/>
+3. Use bootstrap resampling to estimate the 4-week (20 trading day) value at risk of each of our three portfolios at the 5% level.<br/>
+4. Write a report summarizing our portfolios and your VaR findings.</font></p>
+
 ```{r include=FALSE, echo=FALSE}
 library(mosaic)
 library(quantmod)
@@ -10,6 +17,7 @@ library(foreach)
 ```
 
 <br/>
+<h3><font color='#00008b'>Portfolio Description</font></h3>
 <p><font size='3'>We have designed 3 portfolios keeping in mind the traits of three different type of investors i.e. an agressive investor, a moderate investor, and a conservative investor.<br/><br/>
 1. **Agressive Investor**: An agressive investor is a young investor in the age bracket of 18-35, looking for a long term investment of 30 plus years. Such an investor has high tolerance for risk and hence wants a high return.<br/><br/>
 2. **Moderate Investor**: A moderate investor is in the age bracket of 35-50. He/she is looking for a mid-term investment horizon and have some risk taking tolerance (not much though). They are looking for moderare returns.<br/><br/>
@@ -176,6 +184,5 @@ hist(simulation_safe[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Po
 ```{r include=FALSE}
 quantile((simulation_safe[,n_days]- initial_wealth), probs = c(0.05))
 ```
-
 
 <p><font size='3'>The Value at Risk of the safe portfolio at 5% after running Monte Carlo Simulations is negative USD 2634.098. This means that there is a probablity of 0.05 that the portfolio will fall by USD 2634.098. This can also be interpretted as a loss of USD 2634.098 will be incurred on 1 out of 20 days. As expected, it is the lowest when compared with the aggressive and moderate portfolios.</font></p><br/><br />

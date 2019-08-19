@@ -16,7 +16,6 @@ library(knitr)
 
 <h3><font color='#00008b'>Goal</font></h3>
 <p><font size='3'>The goal is to find useful associations between different items that are purchased together.</font></p>
-</br>
 
 ```{r include=FALSE,echo=FALSE}
 tr = read.transactions(file="/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/question 6/groceries.txt", rm.duplicates= FALSE, format="basket",sep=",")
@@ -36,8 +35,6 @@ par(mfrow=c(1,2))
 plot1 = itemFrequencyPlot(tr,top=5,type='absolute')
 plot2 = itemFrequencyPlot(tr,top=5,type='relative')
 ```
-
-<br/>
 
 <h3><font color='#00008b'>Selection of support and confidence thresholds</font></h3>
 <p><font size='3'>We will try different threshold for support and confidence to see the variation in number of rules generated and select values for support and confidence thresholds that give decent number of rules.<br /><br />Another point to note here is that the maximum antecedent length that we'll take is 4 because in a real world scenario it is difficult to couple more items together. This is an assumption though.</font></p>
@@ -95,8 +92,6 @@ grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol=3)
 <p><font size='3'>Analyzing the plots, we find that for a given threshold of support, number of rules generated decrease exponentially with increase in confidence ultimately reaching to 0. In addition to this, support threshold of 5% or greater give very less number of rules.<br /><br />
 We will use support thresold equal to 0.005 i.e. consider baskets that appear in more than or eual to 0.5% of the transactions and confidence threshold of 0.3 i.e. consider associations between X (antecedent) and Y (consequent) X=>Y where probability of Y being purchased when X is purchased is more than or equal to 0.3. This will give us sufficient number of rules to work with<p>
 
-<br/>
-
 <h3><font color='#00008b'>Getting Association Rules using Apriori Algorithm</font></h3>
 
 
@@ -136,8 +131,6 @@ kable(sub1_df)
 <p>1. People who buy baking powder have a high probability of buying whole milk and/or other vegetables. These people could be regulars to the grocery store buying milk and vegetables on regular basis but seldom buying baking powder. This can be substantiated by low support for baking powder.<br/>
 2. People tend to buy yogurt as well when they buy other diary products.<p>
 
-<br/>
-
 <p>Let's filter the rules where order is 3 and lift is greater than 2.</p>
 
 ```{r echo=FALSE}
@@ -165,6 +158,8 @@ sub3 = sort(subset(basket,subset = lift > 3),by='lift')
 sub3_df = data.frame(lhs = labels(lhs(sub3)),rhs = labels(rhs(sub3)),sub3@quality)
 kable(rbind(head(sub3_df,20),head(sub3_df[sub3_df$rhs=='{whole milk}',],10)))
 ```
+
+<h3><font color='#00008b'>Conclusion/font></h3>
 
 <p>Interesting obervation here is that some buyers who buy rolls/buns and shopping bags also buy sausage 30% of the times.</p>
 <br/>

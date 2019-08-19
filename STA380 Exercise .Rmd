@@ -1,0 +1,1622 @@
+---
+title: "STA380 Exercise"
+author: "Apoorva Jasti, Arnav Deshwal, Palakh Gupta, and Tushar Gupta"
+date: "8/18/2019"
+output: github_document
+---
+<br/>
+<h2><font color='#808080'>Green Buildings</h2>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to supoort or counter conclusions of real estate developer's on staff stats guru with evidence.</font></p>
+
+<h3><font color='#00008b'>Data Exploration and Analysis</font></h3>
+
+```{r include=FALSE}
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(mosaic)
+library(ggplot2)
+library(magrittr)
+```
+
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+rm(list=ls())
+buildings=read.csv('data/greenbuildings.csv')
+names(buildings)
+buildings$class = ifelse(buildings$class_a == 1, "A", ifelse(buildings$class_b == 1,"B","C") )
+green=buildings[buildings$green_rating==1,]
+non_green=buildings[buildings$green_rating==0,]
+
+print('Number of green buildings')
+nrow(green)
+print('Number of non-green buildings')
+nrow(non_green)
+
+print('Summary of rent for green buildings')
+summary(green$Rent) ## Mean: 30.02, Median 27.60
+
+print('Summary of rent for non-green buildings')
+summary(non_green$Rent) ## Mean: 28.27, Median 25.00
+#summary(green$age) ## Mean: 23.85
+#summary(non_green$age) ## Mean: 49.47
+
+print('Summary of leasing rate for green buildings')
+summary(green$leasing_rate) ## Mean 89.28 ##93.92
+print('Summary of rent for non-green buildings')
+summary(non_green$leasing_rate) ## Mean 81.97 ##89.17
+#summary(green$net) ## Mean 89.28
+#summary(non_green$net) ## Mean 81.97
+
+
+g_r=green[green$amenities==1,]
+g_nr=green[green$amenities==0,]
+ng_r=non_green[non_green$amenities==1,]
+ng_nr=non_green[non_green$amenities==0,]
+
+print('Green buildings with amenities')
+nrow(g_r)/(nrow(g_r)+nrow(g_nr))*100
+
+print('non-green buildings with amenities')
+nrow(ng_r)/(nrow(ng_r)+nrow(ng_nr))*100
+
+print('Percentage of green buildings in each class')
+kable(table(green$class)/nrow(green)*100)
+print('Percentage of non-green buildings in each class')
+kable(table(non_green$class)/nrow(non_green)*100)
+```
+
+<p><font size='3'>For our research on the dataset, we first looked at how the variables differ between green and non-green buildings. Looking at the summary of the rent and leasing rate, we can see that the rent is $2.6(median rent) higher for green buildings and the leasing rate is ~15% higher for green buildings. Looking at the amenities, we can see that ~3/4th of the green buildings have amenities. From the classes, we can see that green buildings mostly belong to class A while non-green buildings are split across classes.</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+low_occ=buildings[buildings$leasing_rate<10.00,]
+print('Number of buildings with less than 10% occupancy rate')
+nrow(low_occ)## 215 buildings with less than 10% occupancy
+print('Number of green buildings  with less than 10% occupancy rate')
+nrow(low_occ[low_occ$green_rating==1,]) ## 1 green building with low occ
+high_occ=buildings[buildings$leasing_rate>10.00,]
+high_occ_green=high_occ[high_occ$green_rating==1,]
+
+print('Summary of rent for high occupancy green buildings')
+summary(high_occ_green$Rent) ## Mean: 30.03, Median 27.06
+high_occ_non_green=high_occ[high_occ$green_rating==0,]
+print('SUmmary of rent for high occupancy non-green buildings')
+summary(high_occ_non_green$Rent) ## Mean: 28.44, Median 25.03
+
+print('Summary for green buildings with 15 stories')
+summary(green[(green$stories==15),]$size) ## Mean: 291091, Median 262087
+
+g <- ggplot(buildings, aes(stories, size))
+g + geom_jitter(width = .5, size=1) +
+  labs(title="stories vs size of building", 
+       y="size", 
+       x="stories")
+```
+
+<p><font size='3'>We then looked into calculating the median rent and looking into hypothesis the 'excel guru' had. We looked at the rents of green and non-green building with and without the low occupany (<10%) rates, as we can see from the data there is no difference in the mean and median rent. Thus, the median difference of the rents between green and non-green buildings is similar($2.6). We then looked at the size of the 15-story building that the client wanted to build. Looking at the size vs stories, we can say that for the 15-story building, the median size is 266087. The size and stories are positively correlated. This would result into a higher extra revenue per year than predicted by the 'excel guru'.</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+lm.fit=lm(Rent~.,buildings)
+
+print('Summary of multiple linear regression for response rent')
+summary(lm.fit)
+theme_set(theme_classic())
+g <- ggplot(buildings, aes(cluster_rent,Electricity_Costs),fill=factor(cluster_rent))
+g + geom_jitter(width = .5, size=1) +
+  labs(title="Electricity.Costs vs rent of building", 
+       y="Electricity.Costs", 
+       x="cluster rent")
+```
+
+<p><font size='3'>After this we looked into how the other variables affected the rent of green vs non-green buildings. We first looked at the multiple linear regression. From the MLR summary, We can see that size, empl_gr, stories, age, class, net, amenities, hd_total07, precipitation, gas_costs, electricity_costs and cluster rent significantly affect the rent of the building. </font></p>
+
+<p><font size='3'>Variables such as empl_gr, hd_total07, precipitation, gas_costs, electricity_costs and cluster rent are all cluster dependent and hence same for green and non-green buildings. We can see the same from the cluster rent vs electicity cost graph. We need to look into these variables when looking at which cluster to build this building but not to decide if the building should be green or not.</font></p>
+
+<p><font size='3'>We have already looked into the size based on the given height of the building. We will now look into the effect of the age, class, net and amenities on the rent of green buildings vs non-green buildings.</font></p>
+
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+### age vs mean_rent
+buildings=mutate(buildings,agecat=cut(age,c(-1,10,25,50,75,200)))
+
+summ1=buildings %>%
+  group_by(agecat,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+
+ggplot(summ1)+
+  geom_bar(stat='identity',aes(x=agecat,y=mean_rent,fill=factor(green_rating)),position='dodge') +
+ labs(subtitle="Age vs Rent", 
+       y="Rent", 
+       x="Age",
+      fill="Green rating")
+
+### stories vs meant_rent
+buildings=mutate(buildings,lease_cut=cut(leasing_rate,c(-1,10,20,30,40,50,60,70,80,90,100)))
+summ1=buildings %>%
+  group_by(lease_cut,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(summ1)+
+  geom_bar(stat='identity',aes(x=lease_cut,y=mean_rent,fill=factor(green_rating)),position='dodge') +
+ labs(subtitle="Stories vs Rent", 
+       y="Rent", 
+       x="Stories",
+      fill="Green rating")
+
+### net vs meant_rent
+peh <- buildings %>%
+  group_by(net,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(net, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating) +
+    labs(subtitle="Net vs Rent", 
+       y="Rent", 
+       x="Net",
+      fill="Green rating")
+
+### amenities vs meant_rent
+peh <- buildings %>%
+  group_by(amenities,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(amenities, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating) +
+    labs(subtitle="Amenities vs Rent", 
+       y="Rent", 
+       x="Amenities",
+      fill="Green rating")
+
+### class vs meant_rent
+peh <- buildings %>%
+  group_by(class,green_rating) %>%
+  summarize(mean_rent=mean(Rent),n=n())
+ggplot(peh) +
+    geom_col(aes(class, mean_rent,fill=factor(green_rating))) +
+    facet_wrap(~green_rating) +
+    labs(subtitle="Class vs Rent", 
+       y="Class", 
+       x="Age",
+      fill="Green rating")
+```
+
+<p><font size='3'>Looking at the affect of rent on 'net contract' basis, we can see that green-buildings not having net contract cost USD 6/square feet more compared to those that don't have it and $2/square feet more for non-green buildings having net contract. The rent of green-buildings irrespective of amenities is same but non-green buildings without amenities is cheaper by USD 2/square feet. From the age graph, we can see that green buildings have a higher rent after 10 years and their is a bigger difference at 75 years(but not stat. significance.). Hence, age might not be a huge differentiator for green vs non-green buildings for the first 50years. From the class graph, we can see that there is a difference of USD 1.5/square feet for class A and a difference of USD 5/square feet of Class C.</font></p>
+
+<h3><font color='#00008b'>Conclusion</font></h3>
+<p><font size='3'>Taking the expected baseline construction costs to be USD 100 million, with a 5% expected premium for green certification, we should expect to spend an extra USD 5 million on the green building. Based on the extra revenue we would make, we would recuperate these costs in USD 5000000/690000 = 7.25 years. Even if our occupancy rate were only 90%, we would still recuperate the costs in a little over 7.5 years. Thus from year 8 onwards, we would be making atleast an extra USD 620,000 per year in profit assuming atleast 90% occupancy rate. Since the building will be earning rents for 30 years or more, it seems like a good financial move to build the green building with the given data.<br/><br/>
+Thus, from the different analyses we did we can say that the hypotheis 'excel guru' used to conclude the rent is not accurate. We need more details such as the location of the house (cluster) and details on the class, net and amenities of the building. We can use these details to estimate the accurate rent and as well as the additional cost we might incur to build the building.
+</font></p>
+<br/>
+
+<h2><font color='#808080'>Flights of ABIA</h2>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to create a figure, or set of related figures, that tell an interesting story about flights into and out of Austin. You can annotate the figure and briefly describe it, but strive to make it as stand-alone as possible.</font></p>
+
+```{r warning=FALSE, error=FALSE, include=FALSE, fig.height=12,fig.width=12,fig.align= 'center'}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggmap)
+library(lubridate)
+
+data = read.csv('data/ABIA.csv')
+#data
+airport_codes = read.csv('data/airport-codes.csv')
+
+all_airports = unique(c(as.vector(data$Origin),as.vector(data$Dest)))
+#all_airports
+airport_codes = airport_codes[c('type','name','iso_country','iso_region','iata_code','coordinates')]
+#airport_codes
+airport_codes = airport_codes %>%
+ filter(iata_code %in% all_airports) %>%
+ separate(coordinates,c('lat','long'),sep=',')
+#airport_codes
+
+data = data %>%
+ mutate(DepHour=as.integer(DepTime/100),
+        DepMin=as.integer(DepTime%%100),
+        DepHour=as.integer(CRSDepTime/100),
+        DepMin=as.integer(CRSDepTime%%100),
+        DepHour=as.integer(ArrTime/100),
+        DepMin=as.integer(ArrTime%%100),
+        DepHour=as.integer(CRSArrTime/100),
+        DepMin=as.integer(CRSArrTime%%100))
+
+data = data %>%
+ mutate(Month=ifelse(nchar(Month)==1,paste(0,Month,sep=''),as.character(Month)),
+        DayofMonth=ifelse(nchar(DayofMonth)==1,paste(0,DayofMonth,sep=''),as.character(DayofMonth)))
+data = data %>%
+ mutate(Date=paste(DayofMonth,'-',Month,'-',Year,sep=''))
+#head(data)
+
+library("stringr") 
+
+#padding with 0's
+
+data$CRSArrTime = str_pad(data$CRSArrTime, 4, side = c("left"), pad = 0)
+data$CRSDepTime = str_pad(data$CRSDepTime, 4, side = c("left"), pad = 0)
+
+#data$CRSArrTime
+
+#extracting hour and minutes of arrival and departure
+
+data['Arrival Minutes'] = str_sub(data$CRSArrTime, -2,-1  )   
+#data$`Arrival Minutes`
+
+data['Arrival Hour'] = str_sub(data$CRSArrTime, 1,2) 
+#data$`Arrival Hour`
+```
+
+
+```{r  warning=FALSE, error=FALSE, include=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+#season split 
+data['season'] = 0
+i=0
+for( i in 1:12)
+{ 
+  if ((i > 1) && ( i < 5) )
+  { a =  which( data$Month == paste0("0",i))
+    print(a)
+    data$season[a] = "Spring"
+    print(data$season[a])
+    }
+  
+  if ((i < 8) && (i>4))
+   { a =  which( data$Month == paste0("0",i))
+    print(a)
+    data$season[a] = "Summer"
+    print(data$season[a])
+    
+  }
+  
+  if ((i<10) && (i>7))
+  { a =  which( data$Month == paste0('0',i))
+    print(a)
+    data$season[a] = "Fall"
+    print(data$season[a])
+    
+   }
+  
+  if (i==10)
+  { a =  which( data$Month == i)
+    print(a)
+    data$season[a] = "Fall"
+    print(data$season[a])
+    
+   }
+  
+  if ((i<13) && (i>10)) 
+  { a =  which( data$Month == i)
+    print(a)
+    data$season[a] = "Winter"
+    #print(data$season[a])
+    
+  }
+    if (i==1) 
+  { a =  which( data$Month == paste0('0',i))
+    print(a)
+    data$season[a] = "Winter"
+    print(data$season[a])
+    
+  }
+  
+  }
+unique(data$season)
+```
+
+```{r  warning=FALSE, error=FALSE, include=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+# changing days to value 
+
+
+data = data %>% mutate(monthname = ifelse(Month==1,'Jan',
+                                 ifelse(Month==2,'Feb',
+                                   ifelse(Month==3,'Mar',
+                                     ifelse(Month==4,'Apr',
+                                      ifelse(Month==5,'May',
+                                        ifelse(Month==6,'Jun',
+                                          ifelse(Month==7,'Jul',
+                                            ifelse(Month==8,'Aug',
+                                              ifelse(Month==9,'Sep',
+                                                ifelse(Month==10,'Oct',
+                                                  ifelse(Month==11,'Nov','Dec'))))))))))),
+                      weekday = ifelse(DayOfWeek==1,'Monday',
+                                 ifelse(DayOfWeek==2,'Tuesday',
+                                  ifelse(DayOfWeek==3,'Wednesday',
+                                   ifelse(DayOfWeek==4,'Thursday',
+                                    ifelse(DayOfWeek==5,'Friday',
+                                     ifelse(DayOfWeek==6,'Saturday','Sunday')))))))
+```
+
+```{r  warning=FALSE, error=FALSE, include=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+#Type of Delay for Delayed Flights
+
+data['TypeofDelay'] = 0
+
+
+b = which(data$CarrierDelay > 0) 
+data$TypeofDelay[b] = "Carrier Delay"
+    
+
+b = which(data$WeatherDelay > 0) 
+data$TypeofDelay[b] = "Weather Delay"
+
+
+b = which(data$NASDelay > 0) 
+data$TypeofDelay[b] = "NASDelay"
+
+
+b = which(data$SecurityDelay > 0) 
+data$TypeofDelay[b] = "Security Delay"
+  
+
+b = which(data$LateAircraftDelay > 0) 
+data$TypeofDelay[b] = "LateAircraft Delay"
+  
+
+b = which(data$DepDelay == 0) 
+data$TypeofDelay[b] = "No Delay"
+
+
+b = which(data$ArrDelay < 0) 
+data$TypeofDelay[b] = "Early Arrival"
+
+
+b = is.na(data$DepDelay) 
+#b
+data$TypeofDelay[b] = "Canceled"
+
+unique(data$DepDelay)
+
+cols = c('DayOfWeek','Month',"Year","DayofMonth",'season','TypeofDelay')
+data[cols] <- lapply(data[cols], factor)
+#sapply(data,class)
+
+length(which(data$season==0))
+```
+
+```{r  warning=FALSE, error=FALSE, include=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+ 
+#inbound and outbound flights
+
+#data['outbound'] =
+#data$Dest
+data['inbound'] <- data$Dest == "AUS"
+data$inbound = data$inbound*1
+#data$inbound
+
+
+data['outbound'] <- data$Dest != "AUS"
+data$outbound = data$outbound*1
+#data$outbound
+
+# making incoming and outgoing flights
+
+
+
+incoming  = data[data$inbound==1,]
+#incoming
+#incoming$DayOfWeek
+#incoming$Dest
+
+
+outgoing  = data[data$outbound==1,]
+#outgoing
+#outgoing$Origin
+```
+
+
+<h3><font color='#00008b'>Frequency of Flights</font></h3>
+
+```{r  warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+
+data = data %>% mutate(bound = ifelse(Dest=='AUS','Inbound',ifelse(Origin=='AUS','Outbound','Other')))
+#data$bound
+
+
+flights_by_month = data %>%
+ group_by(Month,bound) %>%
+ tally()
+
+flights_by_month
+
+ggplot(flights_by_month, aes(x=Month, n)) +
+ geom_bar(aes(fill = bound), position = 'dodge', stat='identity') +
+ labs(x='Month',y='Frequency',fill='Type',title='Frequency of Flights by Month') + scale_x_discrete(labels=c("Jan", "Feb", "March","April","May","June","July","Aug","Spet","Oct","Nov","Dec"))
+
+```
+
+<p><font size='3'>It is observed that on an average, number of flights flying from and to Austin are relatively equal.</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+flights_by_weekday = data %>%
+ group_by(DayOfWeek,weekday,bound) %>%
+ tally()
+
+ggplot(flights_by_weekday, aes(x=DayOfWeek, n)) +
+ geom_bar(aes(fill = bound), position = 'dodge', stat='identity') +
+ labs(x='Day of Week',y='Frequency',fill='Type',title='Frequency of Flights by Day of Week') +  scale_x_discrete(labels=c("Monday", "Tuesday", "Wednesday","Thursday","Friday","Saturday","Sunday"))
+```
+
+<p><font size='3'>It can also be observed that very less flights fly on Saturday relative to other days and again the inbound and outbound flights are same.</font></p>
+
+<h3><font color='#00008b'>Spring Story</font></h3>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+incoming_delay = incoming[incoming$Cancelled==0,]
+incoming_delay = incoming_delay[incoming_delay$DepDelay>0,]
+outgoing_delay = outgoing[outgoing$Cancelled==0,]
+outgoing_delay = outgoing_delay[outgoing_delay$DepDelay>0,]
+
+
+#for outgoing flights
+
+outgoing_seasonal_delay = xtabs(~  season , data=outgoing_delay)
+#outgoing_seasonal_delay
+outgoing_seasonal_delay= as.data.frame(outgoing_seasonal_delay)
+outgoing_seasonal_delay = outgoing_seasonal_delay[outgoing_seasonal_delay$Freq!=0,]
+#outgoing_seasonal_delay 
+
+outgoing_total = xtabs(~ season , data=outgoing)
+outgoing_total= as.data.frame(outgoing_total)
+outgoing_total = outgoing_total[outgoing_total$Freq!=0,]
+#outgoing_total
+
+outgoing_seasonal_delay = merge(outgoing_seasonal_delay, outgoing_total, by.x  = c('season' ), by.y = c('season' )  )
+outgoing_seasonal_delay['Percent'] = round((outgoing_seasonal_delay['Freq.x']/ outgoing_seasonal_delay['Freq.y'])*100,2)
+#outgoing_seasonal_delay
+#outgoing_seasonal_delay = outgoing_seasonal_delay[outgoing_seasonal_delay$Freq.x!=0,]
+
+#for incoming flights
+
+incoming_seasonal_delay = xtabs(~  season, data=incoming_delay)
+incoming_seasonal_delay= as.data.frame(incoming_seasonal_delay)
+incoming_seasonal_delay = incoming_seasonal_delay[incoming_seasonal_delay$Freq!=0,]
+#incoming_seasonal_delay
+
+incoming_total = xtabs(~ season , data=incoming)
+incoming_total= as.data.frame(incoming_total)
+#incoming_total
+
+incoming_seasonal_delay = merge(incoming_seasonal_delay, incoming_total, by.x  = c('season' ), by.y = c('season' )  )
+incoming_seasonal_delay['Percent'] = round((incoming_seasonal_delay['Freq.x']/ incoming_seasonal_delay['Freq.y'])*100,2)
+#incoming_seasonal_delay
+
+#plots for both 
+
+library(ggplot2)
+p1 <- ggplot(incoming_seasonal_delay, aes(season, incoming_seasonal_delay$Percent,group=1)) + geom_point(col='black')
+p1+ geom_line( col= 'tomato3',cex=2)
+
+par(new=TRUE)
+
+p2 <- ggplot(outgoing_seasonal_delay, aes(season, outgoing_seasonal_delay$Percent,group=1)) + geom_point(col='black')
+p2+ geom_line( col= 'pink',cex=2)
+
+par(new=TRUE)
+```
+
+<p><font size='3'>We notice that for Spring and Summer, the delay is really high compares to Fall and Winter. Let's try to focus more on them to try and understand what could be the reason behind this.<br/>
+It could be that they have a few bad days or something else.<br/>
+Let's try to evaluate this hypothesis.<br/>
+First let's focus on Spring for incoming and outgoing flights</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+
+# delayed  outgoing flights in Spring
+
+
+spring_outgoing = outgoing_delay[outgoing_delay$season=="Spring",]
+outbound_spring_delay = xtabs(~ Month + DayOfWeek  , data=spring_outgoing)
+outbound_spring_delay = as.data.frame(outbound_spring_delay)
+outbound_spring_delay = outbound_spring_delay[outbound_spring_delay$Freq!=0,]
+#outbound_spring_delay
+
+#total flights
+
+
+
+totalspringflights = xtabs(~  Month + DayOfWeek  , data=outgoing)
+totalspringflights = as.data.frame(totalspringflights)
+#totalspringflights
+
+# merging the two datasets
+
+a11 = merge(outbound_spring_delay, totalspringflights, by.x  = c('DayOfWeek' ), by.y = c('DayOfWeek' ) )
+#a11
+
+a11['percent'] = round((a11['Freq.x']/a11['Freq.y'])*100,2)
+#a11
+a11 = a11[a11$Month.x==a11$Month.y,]
+#a11
+
+
+# delayed  incoming flights in Spring
+
+
+spring_incoming = incoming_delay[incoming_delay$season=="Spring",]
+
+inbound_spring_delay = xtabs(~ Month + DayOfWeek  , data=spring_incoming)
+inbound_spring_delay = as.data.frame(inbound_spring_delay)
+inbound_spring_delay = inbound_spring_delay[inbound_spring_delay$Freq!=0,]
+#inbound_spring_delay
+#inbound_spring_delay
+
+#total flights
+
+totalspringflights1 = xtabs(~ Month + DayOfWeek  , data=incoming)
+totalspringflights1 = as.data.frame(totalspringflights1)
+#totalspringflights1
+
+# merging the two datasets
+
+a12 = merge(inbound_spring_delay, totalspringflights1, by.x  = c('DayOfWeek' ), by.y = c('DayOfWeek' )  )
+#a12
+
+a12 = a12[a12$Month.x==a12$Month.y,]
+#a12
+
+
+a12['percent'] = round((a12['Freq.x']/a12['Freq.y'])*100,2)
+#a12
+
+
+#plots for both 
+
+#outgoing
+
+library(ggplot2)
+theme_set(theme_bw())
+
+# Plot
+# lollypop bar chart faceting with spring on outgoing flights
+#a11
+monthnamee = c( "02" = "February", "03" =  "April", "04" = "March")
+
+  
+ggplot(a11, aes(x=a11$DayOfWeek, y=a11$percent)) + 
+  geom_point(size=3) + 
+  facet_grid(Month.x~., labeller = as_labeller(monthnamee))+
+  geom_segment(aes(x=a11$DayOfWeek, 
+                   xend=a11$DayOfWeek, 
+                   y=0, 
+                   yend=percent)) + theme(axis.text.x = element_text(angle = 90)) +
+  labs(x = "Day of the Week", y = " Percentage of Outgoing flights delayed", title="Lollipop Chart", 
+       subtitle="Daily Delays in Spring Monthly") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))   + scale_x_discrete(labels=c("Monday", "Tuesday", "Wednesday","Thursday","Friday","Saturday","Sunday"))
+
+
+par(new=TRUE)
+
+#incoming plot 
+#a12
+  
+ggplot(a12, aes(x=a12$DayOfWeek, y=a12$percent)) + 
+  geom_point(size=3) + 
+  facet_grid(Month.x~., labeller = as_labeller(monthnamee))+
+  geom_segment(aes(x=a12$DayOfWeek, 
+                   xend=a12$DayOfWeek, 
+                   y=0, 
+                   yend=percent)) + 
+  labs(x = "Day of the Week", y = " Percentage of Incoming flights delayed", title="Lollipop Chart", 
+       subtitle="Daily Delays in Spring Monthly") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))+ scale_x_discrete(labels=c("Monday", "Tuesday", "Wednesday","Thursday","Friday","Saturday","Sunday"))
+
+
+```
+
+<p><font size='3'>We can reject the hypothesis that it could be one day creating the huge gap. The whole spring season has an average 6-7% delay in flights daily.<br/>
+After a similar analysis we can say that the summer months follow the same trend.<br/>
+Now let's try to look in a more brief manner as how to does days spread over delays on the basis of seasons</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+# delay acc to season and 
+
+
+notcanceloutbound  = outgoing[outgoing$Cancelled==0,]
+#notcanceloutbound
+#head(notcanceloutbound)
+notcanceloutbound1 = notcanceloutbound[notcanceloutbound$ArrDelay>0,]
+#notcanceloutbound1$ArrDelay
+
+
+
+# delayed flights
+average_outbound_season_delay = notcanceloutbound1 %>%
+  group_by(season, DayOfWeek) %>% tally((!is.na(ArrDelay)))
+
+average_outbound_season_delay =na.omit(average_outbound_season_delay)
+#average_outbound_season_delay
+colnames(average_outbound_season_delay)
+average_outbound_season_delay <- as.data.frame(average_outbound_season_delay)
+#colnames(average_outbound_season_delay)
+
+
+#total flights
+
+colnames(notcanceloutbound)
+totalflights = xtabs(~ season + DayOfWeek  , data=notcanceloutbound)
+totalflights = as.data.frame(totalflights)
+#colnames(totalflights)
+
+# merging the two datasets
+
+average_outbound_season_delay$season <- as.factor(average_outbound_season_delay$season)
+#average_outbound_season_delay
+
+
+sapply(average_outbound_season_delay, class)
+sapply(totalflights, class)
+
+a = merge(average_outbound_season_delay, totalflights, by.x  = c("season",'DayOfWeek' ), by.y = c("season",'DayOfWeek' )  )
+#a
+
+a['percent'] = round(a['n']/a['Freq'],2)
+#a
+
+#plotting it now
+
+
+p <- ggplot(a, aes(DayOfWeek, season)) + geom_tile(aes(fill = percent),
+    colour = 'white') + scale_fill_gradient(low = 'green',high = 'red') + 
+  labs(x='Day of Week',y='Season',title = 'Daily Delays Heatmap',fill='Delayed Flights Percentage') +  scale_x_discrete(labels=c("Monday", "Tuesday", "Wednesday","Thursday","Friday","Saturday","Sunday"))
+
+p
+
+```
+
+<p><font size='3'>We can again see that Spring and Summer mosty are red with higher delay percentages.<br/>
+
+After a more thorough research, we were able to dig the reason for this -<br/>
+
+Summer Storms<br/>
+
+Austin experiences summer storms in the months of spring and summer and in 2008, around 70% of the total summer storms in that year took place during the spring and summer months.<br/>
+This is why we see a stark difference between number of delayed flights in Spring and Summer when compared with Fall and Winter.
+</font></p>
+
+<h3><font color='#00008b'>Carrier Efficiency</font></h3>
+<p><font size='3'>Let's try to understand the airlines now and their efficiency</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+# best airline on an average outbound flights
+# Setup
+options(scipen=999)  # turn off scientific notation like 1e+06
+library(ggplot2)
+
+
+flightlist <- c("9E","AA","YV","NW","CO","XE","B6","WN","UA","OO","OH","EV","US","MQ","F9","DL")
+#flightlist
+unique(data$UniqueCarrier)
+notcanceloutbound  = outgoing[outgoing$Cancelled==0,]
+#notcanceloutbound
+#head(notcanceloutbound)
+
+
+average_outbound_delay2 = notcanceloutbound %>%
+  group_by( UniqueCarrier,TypeofDelay) %>% tally(!is.na(DepDelay))
+
+#average_outbound_delay2
+
+
+totalflights3 = xtabs(~ UniqueCarrier , data= outgoing)
+totalflights3 = as.data.frame(totalflights3)
+#totalflights3
+
+a13 = merge(average_outbound_delay2, totalflights3, by.x  = c('UniqueCarrier' ), by.y = c('UniqueCarrier' ))
+a13
+
+
+
+
+#Plot a13 with respect to all delays
+
+ontimeflights <- a13[a13$TypeofDelay =="No Delay",]
+#ontimeflights
+ontimeflights["Percent"] = round((ontimeflights["n"]/totalflights3['Freq'])*100,2)
+#ontimeflights
+#ontimeflights['on time'] = 1
+
+
+beforetimeflights <- a13[a13$TypeofDelay ==0,]
+#beforetimeflights
+beforetimeflights["Percent"] = round((beforetimeflights["n"]/totalflights3['Freq'])*100,2)
+#beforetimeflights
+#beforetimeflights['beforetime'] = 1
+
+
+#a13
+a13 = a13[a13$TypeofDelay !="No Delay",]
+a13 = a13[a13$TypeofDelay !="Early Arrival",]
+a13 <- a13[a13$TypeofDelay !=0,]
+#a13
+
+delayedflights = a13 %>%
+  group_by(UniqueCarrier) %>% summarise(Freq = sum((n)))
+
+
+#delayedflights
+#totalflights3
+delayedflights["Percent"] = round((delayedflights["Freq"]/totalflights3['Freq'])*100,2)
+#delayedflights['delay']=1
+delayedflights
+
+
+#barcharts 
+library(ggplot2)
+library(scales)
+theme_set(theme_classic())
+
+# Plot
+ggplot(ontimeflights, aes(x=UniqueCarrier, y=ontimeflights$Percent)) + 
+  geom_point(col="tomato2", size=3) +   # Draw points
+  geom_segment(aes(x=UniqueCarrier, 
+                   xend=UniqueCarrier, 
+                   y=0, 
+                   yend=Percent), 
+               linetype="dashed", 
+               size=0.1) +   # Draw dashed lines
+  labs(x= "Flight",y="Percentage of Delayed Flights",title="Dot Plot", 
+       subtitle="Flight vs Delayed Flights") +  
+  coord_flip()
+
+
+
+
+# Beforetime flights 
+ggplot(beforetimeflights, aes(x=UniqueCarrier, y=beforetimeflights$Percent)) + 
+  geom_point(col="black", size=3) +   # Draw points
+  geom_segment(aes(x=UniqueCarrier, 
+                   xend=UniqueCarrier, 
+                   y=0, 
+                   yend=Percent), 
+               linetype="dashed", 
+               size=0.1) +   # Draw dashed lines
+  labs(x= "Flight",y="Percentage of Before Time Flights",title="Dot Plot", 
+       subtitle="Flight vs Before Arrival Time Flights") +  
+  coord_flip() 
+
+# Onetime flights
+ggplot(ontimeflights, aes(x=UniqueCarrier, y=ontimeflights$Percent)) + 
+  geom_point(col="tomato2", size=3) +   # Draw points
+  geom_segment(aes(x=UniqueCarrier, 
+                   xend=UniqueCarrier, 
+                   y=0, 
+                   yend=Percent), 
+               linetype="dashed", 
+               size=0.1) +   # Draw dashed lines
+  labs(x= "Flight",y="Percentage of On-time Flights",title="Dot Plot", 
+       subtitle="Flight vs On-Time Flights") +  
+  coord_flip()
+
+#Delayed FLights
+ggplot(delayedflights, aes(x=UniqueCarrier, y=delayedflights$Percent)) + 
+  geom_point(col="tomato3", size=3) +   # Draw points
+  geom_segment(aes(x=UniqueCarrier, 
+                   xend=UniqueCarrier, 
+                   y=0, 
+                   yend=Percent), 
+               linetype="dashed", 
+               size=0.1) +   # Draw dashed lines
+  labs(x= "Flight",y="Percentage of Delayed Flights",title="Dot Plot", 
+       subtitle="Flight vs Delayed Flights") +  
+  coord_flip()
+```
+
+<p><font size='3'>FRONTIER FLIGHT is the best flight<br/>
+Let's study these airlines a little better now</font></p>
+
+```{r warning=FALSE, error=FALSE, echo=FALSE, fig.height=12,fig.width=12,fig.align='center'}
+F9incomingflights = data[(data$UniqueCarrier=="F9"),]
+#F9incomingflights
+F9incomingflights = F9incomingflights[(F9incomingflights$Dest=="AUS"),]
+F9incomingflights = F9incomingflights[(F9incomingflights$ArrDelay>0),]
+#F9incomingflights
+unique(F9incomingflights$Origin)
+
+#only denver
+
+F9incomingflights["Average Delay"] = F9incomingflights$ArrDelay/ F9incomingflights$AirTime
+mean(is.na(F9incomingflights$`Average Delay`))
+
+delaystoaustin = xtabs(~Dest,data= F9incomingflights)
+delaystoaustin = as.data.frame(delaystoaustin)
+delaystoaustin = delaystoaustin[delaystoaustin$Dest != "AUS",]
+delaystoaustin = delaystoaustin[order(-delaystoaustin$Freq),] 
+
+F9incomingflights_hourly = xtabs(~  DayOfWeek + `Arrival Hour` , data= F9incomingflights)
+F9incomingflights_hourly = as.data.frame(F9incomingflights_hourly)
+F9incomingflights_hourly
+
+
+
+library(ggplot2)
+theme_set(theme_bw())
+
+# best time to travel day and time from Denver to Austin 
+
+options(scipen=999)  # turn-off scientific notation like 1e+48
+library(ggplot2)
+theme_set(theme_bw())  # pre-set the bw theme.
+
+# Scatterplot
+gg <- ggplot(F9incomingflights_hourly, aes(x=DayOfWeek, y=F9incomingflights_hourly$Freq)) + 
+  geom_point(aes(col=Arrival.Hour,size=4)) + 
+  geom_line()+
+  labs(title="Day of Week Vs Delayed Flights", 
+       y="Delayed Flights", 
+       x="Day of Week") +  scale_x_discrete(labels=c("Monday", "Tuesday", "Wednesday","Thursday","Friday","Saturday","Sunday"))
+
+plot(gg)
+
+
+#OUTGOING FLIGHTS 
+
+F9foutgoingflights = data[(data$UniqueCarrier=="F9"),]
+F9foutgoingflights = data[(data$Origin=="AUS"),]
+F9outgoingflights = data[(data$DepDelay>0),]
+#F9outgoingflights
+unique(F9outgoingflights$Dest)
+
+
+delaysfromaustin = xtabs(~Dest,data= F9outgoingflights)
+delaysfromaustin = as.data.frame(delaysfromaustin)
+
+
+delaysfromaustin = delaysfromaustin[delaysfromaustin$Dest != "AUS",]
+delaysfromaustin = delaysfromaustin[order(-delaysfromaustin$Freq),] 
+#delaysfromaustin
+```
+
+<p><font size='3'>We notice that FRONTIER FLIGHT incoming to Austin is only from Denver. The graph shows that while traveling from Denmark to Austin, the most preferable is late night flights at 11pm best on a Saturday.</font></p>
+
+<br/>
+
+<h2><font color='#808080'>Portfolio Modeling</h2>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to:</font></p>
+<p><font size='3'>1. Construct three different possibilities for an ETF-based portfolio, each involving an allocation of $100,000 in capital to somewhere between 3 and 10 different ETFs. We can find a big database of ETFs here.<br/>
+2. Download the last five years of daily data on our chosen ETFs, using the functions in the quantmod package.<br/>
+3. Use bootstrap resampling to estimate the 4-week (20 trading day) value at risk of each of our three portfolios at the 5% level.<br/>
+4. Write a report summarizing our portfolios and your VaR findings.</font></p>
+
+```{r include=FALSE, echo=FALSE}
+library(mosaic)
+library(quantmod)
+library(foreach)
+```
+
+<h3><font color='#00008b'>Portfolio Description</font></h3>
+<p><font size='3'>We have designed 3 portfolios keeping in mind the traits of three different type of investors i.e. an agressive investor, a moderate investor, and a conservative investor.<br/><br/>
+1. **Agressive Investor**: An agressive investor is a young investor in the age bracket of 18-35, looking for a long term investment of 30 plus years. Such an investor has high tolerance for risk and hence wants a high return.<br/><br/>
+2. **Moderate Investor**: A moderate investor is in the age bracket of 35-50. He/she is looking for a mid-term investment horizon and have some risk taking tolerance (not much though). They are looking for moderare returns.<br/><br/>
+3. **Safe Investor**: A safe investor is often over the age of 50, nearing retirement. He/she is typically not a risk taker and want their investments to be safe and less volatile. He/she is looking for small but steady returns.</font></p>
+
+<h3><font color='#00008b'>Portfolio for Aggressive Investor</font></h3>
+<p><font size='3'>For an agressive investor, we will invest 85% of the wealth in stocks and remaining 15% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (20%): VTI<br/>
+- Mid-Cap Stocks (20%): IVOG<br/>
+- Small-Cap Stocks (20%): VB<br/>
+- International Stocks (15%): SCZ<br/>
+- Emerging Markets Stocks (10%): VWO<br/>
+- Intermediate Bonds (15%): BND</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+agg_portfolio = c("VTI","IVOG","VB","SCZ","VWO","BND")
+
+getSymbols(agg_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+VWOa = adjustOHLC(VWO)
+BNDa = adjustOHLC(BND)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(VWOa),ClCl(BNDa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_agg = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2,0.2,0.2,0.15,0.1,0.15)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_agg = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_agg[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_agg
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_agg[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_agg[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+
+<p><font size='3'>The Value at Risk of the aggressive portfolio at 5% after running Monte Carlo Simulations is negative USD 4977.34. This means that there is a probablity of 0.05 that the portfolio will fall by USD 4977.34. This can also be interpretted as a loss of USD 4977.34 will be incurred on 1 out of 20 days.</font></p>
+
+<h3><font color='#00008b'>Portfolio for Moderate Investor</font></h3>
+<p><font size='3'>For a moderate investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (20%): VTI<br/>
+- Mid-Cap Stocks (20%): IVOG<br/>
+- Small-Cap Stocks (10%): VB<br/>
+- International Stocks (15%): SCZ<br/>
+- Emerging Markets Stocks (5%): VWO<br/>
+- Intermediate Bonds (30%): BND</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+mod_portfolio = c("VTI","IVOG","VB","SCZ","VWO","BND")
+
+getSymbols(mod_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+VWOa = adjustOHLC(VWO)
+BNDa = adjustOHLC(BND)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(VWOa),ClCl(BNDa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_mod = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.2,0.2,0.1,0.15,0.05,0.3)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_mod = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_mod[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_mod
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_mod[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_mod[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+
+<p><font size='3'>The Value at Risk of the moderate portfolio at 5% after running Monte Carlo Simulations is negative USD 3687.38. This means that there is a probablity of 0.05 that the portfolio will fall by USD 3687.38. This can also be interpretted as a loss of USD 3687.38 will be incurred on 1 out of 20 days. As expected, it is lower than that of the aggressive portfolio.</font></p>
+
+<h3><font color='#00008b'>Portfolio for Safe Investor</font></h3>
+<p><font size='3'>For an safe investor, we will invest 70% of the wealth in stocks and remaining 30% in bonds. The distribution will be as follows:<br/>
+- Large-Cap Stocks (25%): VTI<br/>
+- Mid-Cap Stocks (10%): IVOG<br/>
+- Small-Cap Stocks (10%): VB<br/>
+- International Stocks (5%): SCZ<br/>
+- Intermediate Bonds (40%): BND<br/ >
+- Short-Term Bonds (10%): NEAR</font></p>
+
+```{r echo=FALSE,include=FALSE,error=FALSE,warning=FALSE}
+safe_portfolio = c("VTI","IVOG","VB","SCZ","BND","BSV")
+
+getSymbols(safe_portfolio,from="2014-04-01")
+
+VTIa = adjustOHLC(VTI)
+IVOGa = adjustOHLC(IVOG)
+VBa = adjustOHLC(VB)
+SCZa = adjustOHLC(SCZ)
+BNDa = adjustOHLC(BND)
+BSVa = adjustOHLC(BSV)
+
+all_returns = cbind(ClCl(VTIa),ClCl(IVOGa),ClCl(VBa),ClCl(SCZa),ClCl(BNDa),ClCl(BSVa))
+all_returns = as.matrix(na.omit(all_returns))
+
+N = nrow(all_returns)
+
+initial_wealth = 100000
+simulation_safe = foreach(i=1:5000, .combine='rbind') %do% {
+  total_wealth = initial_wealth
+  weights = c(0.25,0.1,0.1,0.05,0.4,0.1)
+  holdings = weights * total_wealth
+  n_days = 20
+  wealthtracker_safe = rep(0, n_days)
+  for(today in 1:n_days) {
+    return.today = resample(all_returns, 1, orig.ids=FALSE)
+    holdings = holdings + holdings*return.today
+    total_wealth = sum(holdings)
+    wealthtracker_safe[today] = total_wealth
+    holdings = weights * total_wealth
+  }
+  wealthtracker_safe
+}
+```
+
+```{r echo=FALSE}
+hist(simulation_safe[,n_days]-initial_wealth,breaks=40,main="P&L of Agressive Portfolio",xlab="US dollar",col="blue")
+```
+
+```{r include=FALSE}
+quantile((simulation_safe[,n_days]- initial_wealth), probs = c(0.05))
+```
+
+<p><font size='3'>The Value at Risk of the safe portfolio at 5% after running Monte Carlo Simulations is negative USD 2634.098. This means that there is a probablity of 0.05 that the portfolio will fall by USD 2634.098. This can also be interpretted as a loss of USD 2634.098 will be incurred on 1 out of 20 days. As expected, it is the lowest when compared with the aggressive and moderate portfolios.</font></p><br/>
+
+<h2><font color='#808080'>Market Segmentation</h2>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to identify any interesting market segments that appear to stand out in NutrientH20's social-media audience.</font></p>
+
+```{r include=FALSE, echo=FALSE}
+library(dplyr)
+library(ggplot2)
+library(ggthemes)
+library(LICORS)
+library(knitr)
+
+data = read.csv("data/social_marketing.csv",row.names=1)
+```
+
+<h3><font color='#00008b'>Data Exploration</font></h3>
+<p><font size='3'>Some interesting finds from summary of the data:</p>
+<p>1. There are 7882 followers in the dataset whose tweets have been categorized into 36 distinct categories.<br />
+2. The max number of spam tweets by any follower was 2. This meant that the spam filter was doing its job fairly well.</font></p>
+
+```{r echo=FALSE}
+total_col = apply(data,1,sum)
+rel_freq = function(x) {
+  x / total_col
+}
+
+data.1 = data %>% mutate(rel_uncat=rel_freq(uncategorized),rel_adult=rel_freq(adult)) 
+
+data.clean = data.1 %>% filter(rel_uncat<.33&rel_adult<.33)
+data.clean = data.clean[,!(names(data.clean) %in% c("rel_uncat","rel_adult","uncategorized","adult","chatter","spam"))]
+data.scaled = scale(data.clean,center=TRUE,scale=TRUE)
+
+mu = attr(data.scaled,"scaled:center")
+sigma = attr(data.scaled,"scaled:scale")
+```
+
+<p><font size='3'>3. On the basis of relative frequency of tweet categories for every followers, we omitted the followers who had more than one-third of their tweets under uncategorized or adult. 26 followers were removed.
+4. We will drop uncategorized, adult, chatter and spam columna as they don't add value to cluster definition.<br /></font></p>
+
+<h3><font color='#00008b'>Clustering</font></h3>
+<p><font size='3'>First will we perform K-means to find clusters of followers. Number of clusters will be chosen on the basis of elbow plot. The grid for k will be from 2 through 25.</font></p>
+
+```{r echo=FALSE,warning=FALSE,error=FALSE,fig.height=8,fig.width=10,fig.align="center"}
+set.seed(1892)
+grid=seq(2,25,1)
+sse = c()
+ch = c()
+
+for(i in grid){
+  cluster = kmeans(data.scaled,i,nstart=20)
+  sse = c(sse,cluster$tot.withinss)
+  W = cluster$tot.withinss
+  B = cluster$betweenss
+  N = nrow(data.scaled)
+  ch1 = (B/W)*((N-i)/(i-1))
+  ch = c(ch,ch1)
+}
+
+output = as.data.frame(cbind(grid,sse,ch))
+
+ggplot(output) +
+  geom_point(aes(x=grid,y=sse)) +
+  labs(x='K',y='SSE')
+```
+
+<p><font size='3'>In the plot above, we can't see a prominent elbow. We will now plot CH index plot to find value of K.</font></p>
+
+```{r echo=FALSE,fig.height=8,fig.width=10,fig.align="center"}
+ggplot(output) +
+  geom_point(aes(x=grid,y=ch)) +
+  labs(x='K',y='CH')
+```
+
+<p><font size='3'>On the basis K vs CH index plot, we will choose k as 6.</font></p>
+
+```{r echo=FALSE}
+cluster = kmeans(data.scaled,6,nstart=20)
+cluster$size/nrow(data.scaled)
+```
+
+<p><font size='3'>The clusters have ~9%, ~8%, ~10%, ~12% and ~64% of the followers.</font></p><br/>
+
+<p><font size='3'>Next we will use K-means ++  initialization.</font><p><br/>
+
+```{r echo=FALSE}
+cluster_pp = kmeanspp(data.scaled,6,nstart=20)
+cluster_pp$size/nrow(data.scaled)
+```
+
+<p><font size='3'>K-means ++ is giving the same clusters sizes. So, we'll stick with K-means result.</font><p>
+
+<p><font size='3'>We now try Hierachical clustering to see if the results change.</font><p><br/>
+
+
+```{r echo=FALSE}
+distance_matrix = dist(data.scaled, method='euclidean')
+hier_cluster = hclust(distance_matrix, method='average')
+hier_cluster_10 = cutree(hier_cluster, k=10)
+summary(factor(hier_cluster_10))
+```
+
+<p><font size='3'>Heirachical clustering is not giving good result in this case as one of the cluster is huge with almost 99 percent of the followers.</font><p>
+
+<h3><font color='#00008b'>Cluster Analysis</font></h3>
+<p><font size='3'>K-means gave us 4 clusters. We will now analyze these clusters.</font><p><br />
+
+
+```{r echo=FALSE, include=FALSE}
+Z = data.clean/rowSums(data.clean)
+
+pc2 = prcomp(Z,scale=TRUE,rank=5,center=TRUE)
+summary(pc2)
+loadings = pc2$rotation
+scores = pc2$x
+
+Z = as.data.frame(cbind(Z,cluster$cluster))
+Z$`cluster$cluster` = as.factor(Z$`cluster$cluster`)
+names(Z)[names(Z) == 'cluster$cluster'] <- 'cluster'
+```
+
+<p><font size='3'>We will use PCA to analyze the cluster. In the plot we see six clusters with position of the followers on the basis on principle component 1 and principle component 2.</font><p><br />
+
+```{r echo=FALSE,fig.height=8,fig.width=10,fig.align="center"}
+qplot(scores[,1], scores[,2], color=Z$cluster, xlab='Component 1', ylab='Component 2')+scale_color_colorblind()
+```
+
+<br /><p><font size='3'>The order of loadings for principle component 1 is:</font><p>
+
+```{r echo=FALSE} 
+colnames(Z)[order(loadings[,1], decreasing=TRUE)]
+```
+
+<br /><p><font size='3'>The order of loadings for principle component 2 is:</font><p>
+
+```{r echo=FALSE}
+colnames(Z)[order(loadings[,2], decreasing=TRUE)]
+```
+
+<br/><p><font size='3'>We will also use biplot to define the clusters.</font><p>
+
+```{r echo=FALSE,fig.height=12,fig.width=12,fig.align="center"}
+biplot(pc2)
+```
+
+<h3><font color='#00008b'>Conclusion</font></h3>
+<p><font size='3'>On the basis of the biplot, principle component 1 and principle component 2 we can define our cluster of followers as:<br/><br/>
+1. **Parents/Family oriented**: This cluster has followers who belong baby boomer or gen X category. They tweet a mostly about parenting, food, family, and religion.<br /><br />
+2. **Media Junkies**: This cluster has followers who talk about news, politics, business, and currenrt events. They like to talk about movies and television.<br /><br />
+3. **College Students**: This cluster has young lads who are in college and like talking about sports and online gaming. They also share photos and love to travel.<br /><br />
+4. **Artists**: This cluster has followers who are inclined towards music, crafts, and art.<br/><br />
+5. **Fitness Enthusiasts**: This cluster has followers with interests in health and nutrition, personal fitness, and talk about outdoor activities.<br/><br />
+6. **Beauty Bloggers**: This cluster has followers who are beauty conscious and talk about fashion and dating.<br/>
+</font><p><br/>
+
+<h2><font color='#808080'>Author Attribution</h2>
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to predict authorship of articles in the test data using predictive modeling techniques.</font></p>
+</br>
+
+```{r include=FALSE}
+library(tm) 
+library(magrittr)
+library(slam)
+library(proxy)
+library(caret)
+```
+
+<h3><font color='#00008b'>Data Preparation</font></h3>
+<p><font size='3'>For data preparation, we have followed the steps mentioned below:</p>
+<p>1. Created train and test file list.<br />
+2. Bound train and test file list.<br /></font></p>
+
+```{r echo=FALSE}
+
+## reader function
+readerPlain = function(fname){
+  readPlain(elem=list(content=readLines(fname)), 
+            id=fname, language='en') }
+
+```
+
+```{r echo=FALSE}
+folder_list = Sys.glob('data/ReutersC50/C50train/*')
+
+file_list_train=c()
+labels_train=c()
+
+
+for (f in folder_list){
+  file_list_train=c(file_list_train,Sys.glob(paste(f, '/*', sep="")))
+  labels_train=c(labels_train,rep(substring(f,first=10),50))
+}
+
+
+folder_list = Sys.glob('data/ReutersC50/C50test/*')
+
+file_list_test=c()
+labels_test=c()
+
+
+for (f in folder_list){
+  file_list_test=c(file_list_test,Sys.glob(paste(f, '/*', sep="")))
+  labels_test=c(labels_test,rep(substring(f,first=9),50))
+}
+
+
+labels=unique(append(labels_train,labels_test))
+  
+
+
+file_list=append(file_list_train,file_list_test)
+
+file_list_train[1:10]
+file_list_test[1:10]
+
+```
+
+<p><font size='3'>3. Rend text from files.</font></p>
+
+```{r echo=FALSE}
+
+text= lapply(file_list, readerPlain) 
+
+text[1:10]
+
+```
+
+<p><font size='3'>4. Cleaned file names.</font></p>
+
+```{r echo=FALSE}
+
+mynames = file_list %>%
+{ strsplit(., '/', fixed=TRUE) } %>%
+{ lapply(., tail, n=2) } %>%
+{ lapply(., paste0, collapse = '') } %>%
+  unlist
+
+# Rename the articles
+mynames[1:10]
+names(text) = mynames
+
+```
+
+<p><font size='3'>5. Created a document corpus.<br/>
+6. Performed data pre-processing which included removing excess whitespaces, punctuations, numbers, and stopwords.</font></p>
+
+```{r echo=FALSE}
+
+documents_raw = VCorpus(VectorSource(text))
+
+
+my_documents = documents_raw
+my_documents = tm_map(my_documents, content_transformer(tolower)) # make everything lowercase
+my_documents = tm_map(my_documents, content_transformer(removeNumbers)) # remove numbers
+my_documents = tm_map(my_documents, content_transformer(removePunctuation)) # remove punctuation
+my_documents = tm_map(my_documents, content_transformer(stripWhitespace)) ## remove excess white-space
+
+my_documents = tm_map(my_documents, content_transformer(removeWords), stopwords("en"))
+
+my_documents
+
+```
+
+<p><font size='3'>7. Created the Document Term Matrix.<br/>
+8. Removed sparse terms with more than 95% sparsity.</font></p>
+
+```{r echo=FALSE}
+## 
+DTM_text = DocumentTermMatrix(my_documents)
+inspect(DTM_text)
+
+
+DTM_text = removeSparseTerms(DTM_text, 0.95)
+inspect(DTM_text)
+
+```
+
+<h3><font color='#00008b'>Naive Bayes Classifier</font></h3>
+
+```{r echo=FALSE}
+
+X_train=as.matrix(DTM_text[1:2500,])
+
+## Laplace smoothing
+smooth = 1/nrow(X_train)
+
+
+for(i in 1:50){ 
+  p_name <- paste("p",labels[i], sep = "_")
+  temp <- colSums(X_train[(50*(i-1)+1):(50*i),] + smooth)
+  assign(p_name, temp/sum(temp))
+}
+
+```
+
+<p><font size='3'>We have used the probablility vectors to predict for test set.</font></p>
+
+```{r echo=FALSE}
+X_test <- as.matrix(DTM_text[2501:5000,])
+pred = matrix(, nrow = 2500, ncol = 51) 
+for(i in 1:2500){ 
+  for(j in 1:50){
+    p_name <- paste("p",labels[j], sep = "_")
+    pred[i,j] = sum(X_test[i,]*log(get(p_name)))
+  }
+}
+pred[1:10,1:5]
+
+```
+
+<p><font size='3'>We have found out which author do the documents belong to.</font></p>
+
+```{r echo=FALSE}
+for (i in 1:2500){
+  pred[i,51] = which.max(pred[i,])
+}
+pred[,51]
+```
+
+
+<p><font size='3'>The accuracy using only the DTM matrix as input for Naive Bayes classifier was 59.2%</font></p>
+
+```{r echo=FALSE}
+actual_labels=c()
+for(i in 1:50){
+  actual_labels=c(actual_labels,rep(i,50))
+}
+
+confusionMatrix(table(pred[,51],actual_labels))
+```
+
+<p><font size='3'>Next we have used tfidf scores as the input for Naive Bayes and got an accuracy of 59.88%</font></p>
+
+```{r echo=FALSE}
+tfidf_text = weightTfIdf(DTM_text)
+
+X_train = as.matrix(tfidf_text[1:2500,])
+X_test=as.matrix(tfidf_text[2501:5000,])
+
+smooth = 1/nrow(X_train)
+for(i in 1:50){ 
+  p_name <- paste("p",labels[i], sep = "_")
+  temp <- colSums(X_train[(50*(i-1)+1):(50*i),] + smooth)
+  assign(p_name, temp/sum(temp))
+}
+
+pred = matrix( nrow = 2500, ncol = 51) 
+for(i in 1:2500){ 
+  for(j in 1:50){
+    p_name <- paste("p",labels[j], sep = "_")
+    pred[i,j] = sum(X_test[i,]*log(get(p_name)))
+  }
+}
+pred[1:10,1:5]
+
+for (i in 1:2500){
+  pred[i,51] = which.max(pred[i,])
+}
+
+confusionMatrix(table(pred[,51],actual_labels))
+```
+
+<h3><font color='#00008b'>Random Forest Classifier</font></h3>
+
+```{r echo=FALSE}
+author_df=as.data.frame(as.matrix(DTM_text))
+
+author=rep(rep(1:50,each=50),2)
+
+colnames(author_df) = make.names(colnames(author_df))
+
+author_df$author=author
+
+author_df$author=as.factor(author_df$author)
+
+library(randomForest)
+
+rf=randomForest(author~.,data=author_df[1:2500,],ntree=1000)
+pred_author=predict(rf,newdata=author_df[2501:5000,])
+confusionMatrix(pred_author,author_df[2501:5000,]$author)
+```
+
+<h3><font color='#00008b'>Conclusion</font></h3>
+<p><font size='3'>Accuracies for models tested:</font></p>
+<p><font size='3'>1. Random forest gives an accuracy of 62%.<br/>
+2. Naive Bayes with only the Document term matrix as input gives an accuracy of 59%.<br/>
+3. Naive Bayes with TFIDF scores as input gives an accuracy of 59.8%<br/><br/>
+Random forest performs the best for the given dataset.
+</font></p>
+<br/>
+
+<h2><font color='#808080'>Associate Mining Rule</h2>
+
+```{r include=FALSE,echo=FALSE}
+library(tidyverse)
+library(arules)
+library(arulesViz)
+library(gridExtra)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to find useful associations between different items that are purchased together.</font></p>
+
+```{r include=FALSE,echo=FALSE}
+tr = read.transactions(file="data/groceries.txt", rm.duplicates= FALSE, format="basket",sep=",")
+summary = summary(tr)
+summary
+```
+
+<h3><font color='#00008b'>Data Exploration</font></h3>
+<p><font size='3'>Some interesting finds from summary of all transactions:</p>
+<p>1. There are a total of 9835 transactions and 169 items in the itemset.<br />
+2. 2159 (~22%) of the times only one product is bought.<br />
+3. 75% of the baskets have 6 items or less.<br />
+4. Whole milk, other vegetables, rolls/buns, soda and yogurt are the top five most frequently bought items with presence in 2513 (25.5%), 1903 (19.4%), 1809 (18.4%), 1715 (17.4%) and 1372 (13.9%) transactions/baskets respectively.</font></p>
+
+```{r echo=FALSE,fig.align="center"}
+par(mfrow=c(1,2))
+plot1 = itemFrequencyPlot(tr,top=5,type='absolute')
+plot2 = itemFrequencyPlot(tr,top=5,type='relative')
+```
+
+<h3><font color='#00008b'>Selection of support and confidence thresholds</font></h3>
+<p><font size='3'>We will try different threshold for support and confidence to see the variation in number of rules generated and select values for support and confidence thresholds that give decent number of rules.<br /><br />Another point to note here is that the maximum antecedent length that we'll take is 4 because in a real world scenario it is difficult to couple more items together. This is an assumption though.</font></p>
+
+```{r echo=FALSE,include=FALSE}
+support_thresold = c(0.001,0.005,0.01,0.05,0.1,0.2)
+confidence_threshold = seq(0.1,1,0.1)
+
+for(i in 1:length(support_thresold)){
+  print(i)
+  count = c()
+  for(j in 1:length(confidence_threshold)){
+    print(j)
+    count = c(count,length(apriori(tr,parameter=list(sup=support_thresold[i],
+                                                     conf=confidence_threshold[j],target="rules",maxlen=4))))
+  }
+  assign(paste("basket_rules",i,sep=""),count)
+}
+
+plot1 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules1),color="red") +
+  labs(title='Support level of 0.1%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules1))
+
+plot2 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules2),color="red") +
+  labs(title='Support level of 0.5%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules2))
+
+plot3 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules3),color="red") +
+  labs(title='Support level of 1%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules3))
+
+plot4 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules4),color="red") +
+  labs(title='Support level of 5%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules4))
+
+plot5 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules5),color="red") +
+  labs(title='Support level of 10%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules5))
+
+plot6 = ggplot() +
+  geom_line(aes(x=confidence_threshold,y=basket_rules6),color="red") +
+  labs(title='Support level of 20%',x='Confidence Threshold',y="Number of rules found") +
+  geom_point(aes(x=confidence_threshold,y=basket_rules6))
+```
+
+```{r echo=FALSE,fig.height=8,fig.width=10,fig.align="center"}
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, ncol=3)
+```
+
+<p><font size='3'>Analyzing the plots, we find that for a given threshold of support, number of rules generated decrease exponentially with increase in confidence ultimately reaching to 0. In addition to this, support threshold of 5% or greater give very less number of rules.<br /><br />
+We will use support thresold equal to 0.005 i.e. consider baskets that appear in more than or eual to 0.5% of the transactions and confidence threshold of 0.3 i.e. consider associations between X (antecedent) and Y (consequent) X=>Y where probability of Y being purchased when X is purchased is more than or equal to 0.3. This will give us sufficient number of rules to work with<p>
+
+<h3><font color='#00008b'>Getting Association Rules using Apriori Algorithm</font></h3>
+
+
+```{r echo=FALSE,include=FALSE}
+basket = apriori(tr,parameter=list(sup=0.005,conf=0.3,target="rules",maxlen=4)) 
+basket_df = data.frame(lhs = labels(lhs(basket)),rhs = labels(rhs(basket)),basket@quality)
+```
+
+<p>We get 482 rules in total.<br/><br/>Let's see what the consequents and their frequencies are.</p>
+
+```{r echo=FALSE,fig.align="center"}
+basket_rhs = basket_df %>% group_by(rhs) %>% tally() %>% arrange(.,desc(n))
+
+ggplot(basket_rhs,aes(x=reorder(rhs,n),rhs,y=n)) + 
+  geom_bar(stat='identity') +
+  labs(title='Top 10 Consequents',x='Consequent',y="Frequency of Consequent") +
+  coord_flip()
+```
+
+<p>As we observe from the plot above, most frequent consequent is whole milk followed by other vegetables. This was highly likely as whole milk and other vegetables are present in 25.5% and 19.4% of the transactions. These are frequently consumed perishable items. Hence, most of the transactions and resultant associations were expected to be skewed because of their presence.</p>
+
+<p>We will now do a two-key plotting to understand the distribution of baskets based on their confidence, support and order.</p>
+
+```{r echo=FALSE,warning=FALSE,fig.align="center",error=FALSE}
+plot(basket, method='two-key plot')
+```
+
+<p>From the plot we can observe that most of the rules of order 2 have high support and confidence ranging from low to moderate. Let's filter the rules where order is 2 and lift is greater than 2.</p>
+
+```{r echo=FALSE}
+sub1 = sort(subset(basket,subset = size(lhs) == 1 & lift > 2),by='lift')
+sub1_df = data.frame(lhs = labels(lhs(sub1)),rhs = labels(rhs(sub1)),sub1@quality)
+kable(sub1_df)
+```
+
+<p> Interesting points to note here are:</p>
+<p>1. People who buy baking powder have a high probability of buying whole milk and/or other vegetables. These people could be regulars to the grocery store buying milk and vegetables on regular basis but seldom buying baking powder. This can be substantiated by low support for baking powder.<br/>
+2. People tend to buy yogurt as well when they buy other diary products.<p>
+
+<p>Let's filter the rules where order is 3 and lift is greater than 2.</p>
+
+```{r echo=FALSE}
+sub2 = sort(subset(basket,subset = size(lhs) == 2 & lift > 2),by='lift')
+sub2_df = data.frame(lhs = labels(lhs(sub2)),rhs = labels(rhs(sub2)),sub2@quality)
+kable(rbind(head(sub2_df,20),head(sub2_df[sub2_df$rhs=='{whole milk}',],10)))
+```
+
+<p>From the rules above, we observe the following:</p>
+<p>1. We see a strong association between citrus fruit, pip fruit and tropical fruit where people buying citrus fruit and pip fruit are also buying tropical fruit ~40% of the times with a lift of 3.854 (meaning people who buy citrus fruit and pip fruit are 3.854 times more likely to buy tropical fruit if they see those).<br/>
+2. We see a trend where the probability of people buying vegetables and fruits together is high.<br/>
+3. We can also see that people who are buying curd and tropical fruit or whipped/sour cream and tropical fruit tend to buy yogart on an average of ~48% of the times with a lift of over 3.<br/>
+4. People tend buy whole milk when they buy other dairy products such as butter, curd, yogurt, whipped/sour cream.</p><br/>
+
+<p>Let's plot the distribution of rules based on support, confidence and lift</p>
+
+```{r echo=FALSE,fig.align="center",error=FALSE,warning=FALSE}
+plot(basket, measure = c("support", "lift"), shading = "confidence")
+```
+
+<p>We can see here that some rules have low support and high lift. This might give us a niche category of buyers.<br/><br/> Filering out these rules:</p>
+
+```{r echo=FALSE}
+sub3 = sort(subset(basket,subset = lift > 3),by='lift')
+sub3_df = data.frame(lhs = labels(lhs(sub3)),rhs = labels(rhs(sub3)),sub3@quality)
+kable(rbind(head(sub3_df,20),head(sub3_df[sub3_df$rhs=='{whole milk}',],10)))
+```
+
+<p>Interesting obervation here is that some buyers who buy rolls/buns and shopping bags also buy sausage 30% of the times.</p>
+<br/>
+
+<h3><font color='#00008b'>Conclusion</font></h3>
+<p>1. All fruits and vegetables should be kept in close proximity as people often tend to buy them together.<br/>
+2. Dairy products should be kept together with yogurt being the highlighter product.
+3. Berries and yogurt are often brought together. So berries should be placed near dairy section to increase cross-sell.
+4. Sausage and rolls/buns may sell together. So they should be kept close to each other.</p>

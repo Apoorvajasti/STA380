@@ -1,0 +1,232 @@
+---
+title: "Author Attribution"
+output: html_document
+---
+
+<h3><font color='#00008b'>Goal</font></h3>
+<p><font size='3'>The goal is to predict authorship of articles in the test data using predictive modeling techniques.</font></p>
+</br>
+
+```{r include=FALSE}
+library(tm) 
+library(magrittr)
+library(slam)
+library(proxy)
+library(caret)
+```
+
+<h3><font color='#00008b'>Data Preparation</font></h3>
+<p><font size='3'>For data preparation, we have followed the steps mentioned below:</p>
+<p>1. Created train and test file list.<br />
+2. Bound train and test file list.<br /></font></p>
+
+```{r echo=FALSE}
+
+## reader function
+readerPlain = function(fname){
+  readPlain(elem=list(content=readLines(fname)), 
+            id=fname, language='en') }
+
+```
+
+```{r echo=FALSE}
+folder_list = Sys.glob('ReutersC50/C50train/*')
+
+file_list_train=c()
+labels_train=c()
+
+
+for (f in folder_list){
+  file_list_train=c(file_list_train,Sys.glob(paste(f, '/*', sep="")))
+  labels_train=c(labels_train,rep(substring(f,first=10),50))
+}
+
+
+folder_list = Sys.glob('ReutersC50/C50test/*')
+
+file_list_test=c()
+labels_test=c()
+
+
+for (f in folder_list){
+  file_list_test=c(file_list_test,Sys.glob(paste(f, '/*', sep="")))
+  labels_test=c(labels_test,rep(substring(f,first=9),50))
+}
+
+
+labels=unique(append(labels_train,labels_test))
+  
+
+
+file_list=append(file_list_train,file_list_test)
+
+file_list_train[1:10]
+file_list_test[1:10]
+
+```
+
+<p><font size='3'>3. Rend text from files.</font></p>
+
+```{r echo=FALSE}
+
+text= lapply(file_list, readerPlain) 
+
+text[1:10]
+
+```
+
+<p><font size='3'>4. Cleaned file names.</font></p>
+
+```{r echo=FALSE}
+
+mynames = file_list %>%
+{ strsplit(., '/', fixed=TRUE) } %>%
+{ lapply(., tail, n=2) } %>%
+{ lapply(., paste0, collapse = '') } %>%
+  unlist
+
+# Rename the articles
+mynames[1:10]
+names(text) = mynames
+
+```
+
+<p><font size='3'>5. Created a document corpus.<br/>
+6. Performed data pre-processing which included removing excess whitespaces, punctuations, numbers, and stopwords.</font></p>
+
+```{r echo=FALSE}
+
+documents_raw = VCorpus(VectorSource(text))
+
+
+my_documents = documents_raw
+my_documents = tm_map(my_documents, content_transformer(tolower)) # make everything lowercase
+my_documents = tm_map(my_documents, content_transformer(removeNumbers)) # remove numbers
+my_documents = tm_map(my_documents, content_transformer(removePunctuation)) # remove punctuation
+my_documents = tm_map(my_documents, content_transformer(stripWhitespace)) ## remove excess white-space
+
+my_documents = tm_map(my_documents, content_transformer(removeWords), stopwords("en"))
+
+my_documents
+
+```
+
+<p><font size='3'>7. Created the Document Term Matrix.<br/>
+8. Removed sparse terms with more than 95% sparsity.</font></p>
+
+```{r echo=FALSE}
+## 
+DTM_text = DocumentTermMatrix(my_documents)
+inspect(DTM_text)
+
+
+DTM_text = removeSparseTerms(DTM_text, 0.95)
+inspect(DTM_text)
+
+```
+
+<h3><font color='#00008b'>Naive Bayes Classifier</font></h3>
+
+```{r echo=FALSE}
+
+X_train=as.matrix(DTM_text[1:2500,])
+
+## Laplace smoothing
+smooth = 1/nrow(X_train)
+
+
+for(i in 1:50){ 
+  p_name <- paste("p",labels[i], sep = "_")
+  temp <- colSums(X_train[(50*(i-1)+1):(50*i),] + smooth)
+  assign(p_name, temp/sum(temp))
+}
+
+```
+
+<p><font size='3'>We have used the probablility vectors to predict for test set.</font></p>
+
+```{r echo=FALSE}
+X_test <- as.matrix(DTM_text[2501:5000,])
+pred = matrix(, nrow = 2500, ncol = 51) 
+for(i in 1:2500){ 
+  for(j in 1:50){
+    p_name <- paste("p",labels[j], sep = "_")
+    pred[i,j] = sum(X_test[i,]*log(get(p_name)))
+  }
+}
+pred[1:10,1:5]
+
+```
+
+<p><font size='3'>We have found out which author do the documents belong to.</font></p>
+
+```{r echo=FALSE}
+for (i in 1:2500){
+  pred[i,51] = which.max(pred[i,])
+}
+pred[,51]
+```
+
+
+<p><font size='3'>The accuracy using only the DTM matrix as input for Naive Bayes classifier was 59.2%</font></p>
+
+```{r echo=FALSE}
+actual_labels=c()
+for(i in 1:50){
+  actual_labels=c(actual_labels,rep(i,50))
+}
+
+confusionMatrix(table(pred[,51],actual_labels))
+```
+
+<p><font size='3'>Next we have used tfidf scores as the input for Naive Bayes and got an accuracy of 59.88%</font></p>
+
+```{r echo=FALSE}
+tfidf_text = weightTfIdf(DTM_text)
+
+X_train = as.matrix(tfidf_text[1:2500,])
+X_test=as.matrix(tfidf_text[2501:5000,])
+
+smooth = 1/nrow(X_train)
+for(i in 1:50){ 
+  p_name <- paste("p",labels[i], sep = "_")
+  temp <- colSums(X_train[(50*(i-1)+1):(50*i),] + smooth)
+  assign(p_name, temp/sum(temp))
+}
+
+pred = matrix( nrow = 2500, ncol = 51) 
+for(i in 1:2500){ 
+  for(j in 1:50){
+    p_name <- paste("p",labels[j], sep = "_")
+    pred[i,j] = sum(X_test[i,]*log(get(p_name)))
+  }
+}
+pred[1:10,1:5]
+
+for (i in 1:2500){
+  pred[i,51] = which.max(pred[i,])
+}
+
+confusionMatrix(table(pred[,51],actual_labels))
+```
+
+<h3><font color='#00008b'>Random Forest Classifier</font></h3>
+
+```{r echo=FALSE}
+author_df=as.data.frame(as.matrix(DTM_text))
+
+author=rep(rep(1:50,each=50),2)
+
+colnames(author_df) = make.names(colnames(author_df))
+
+author_df$author=author
+
+author_df$author=as.factor(author_df$author)
+
+library(randomForest)
+
+rf=randomForest(author~.,data=author_df[1:2500,],ntree=1000)
+pred_author=predict(rf,newdata=author_df[2501:5000,])
+confusionMatrix(pred_author,author_df[2501:5000,]$author)
+```
+

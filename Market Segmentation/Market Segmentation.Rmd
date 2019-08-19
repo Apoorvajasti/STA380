@@ -4,7 +4,7 @@ output: html_document
 ---
 
 <h3><font color='#00008b'>Goal</font></h3>
-<p><font size='3'>The goal is to identifies any interesting market segments that appear to stand out in NutrientH20's social-media audience.</font></p>
+<p><font size='3'>The goal is to identify any interesting market segments that appear to stand out in NutrientH20's social-media audience.</font></p>
 </br>
 
 ```{r include=FALSE, echo=FALSE}
@@ -12,14 +12,9 @@ library(dplyr)
 library(ggplot2)
 library(ggthemes)
 library(LICORS)
-library(janitor)
 library(knitr)
-library(kableExtra)
-library(ggalt)
-library(ggbiplot)
 
-setwd("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/")
-data = read.csv("/Users/tushargupta/Documents/UT Austin/380/STA380/assignment/Market Segmentation/social_marketing.csv",row.names=1)
+data = read.csv("social_marketing.csv",row.names=1)
 ```
 
 <h3><font color='#00008b'>Data Exploration</font></h3>
@@ -113,18 +108,6 @@ summary(factor(hier_cluster_10))
 <h3><font color='#00008b'>Cluster Analysis</font></h3>
 <p><font size='3'>K-means gave us 4 clusters. We will now analyze these clusters.</font><p><br />
 
-```{r include=FALSE}
-#all_data = as.data.frame(cbind(data.clean.1,cluster$cluster))
-#names(all_data)[names(all_data) == 'cluster$cluster'] <- 'cluster'
-#all_data$cluster = as.factor(all_data$cluster)
-#cluster1 = all_data[all_data$cluster=='1',]
-#cluster2 = all_data[all_data$cluster=='2',]
-#cluster3 = all_data[all_data$cluster=='3',]
-#cluster4 = all_data[all_data$cluster=='4',]
-
-#cluster1_rel = cluster1[,-37]/rowSums(cluster1[,-37])
-```
-
 
 ```{r echo=FALSE, include=FALSE}
 Z = data.clean/rowSums(data.clean)
@@ -163,6 +146,8 @@ colnames(Z)[order(loadings[,2], decreasing=TRUE)]
 biplot(pc2)
 ```
 
+
+<h3><font color='#00008b'>Conclusion</font></h3>
 <p><font size='3'>On the basis of the biplot, principle component 1 and principle component 2 we can define our cluster of followers as:<br/><br/>
 1. **Parents/Family oriented**: This cluster has followers who belong baby boomer or gen X category. They tweet a mostly about parenting, food, family, and religion.<br /><br />
 2. **Media Junkies**: This cluster has followers who talk about news, politics, business, and currenrt events. They like to talk about movies and television.<br /><br />
